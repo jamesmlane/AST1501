@@ -9,7 +9,7 @@ James Lane AST 1501 Project at UofT
 [Notebook](notebooks/1-gaiadr2-apogee_dataset/gaiadr2-apogee_dataset.FIT)
 
 Prepare the dataset. Convert all quantities to galactocentric
-coordinates, find all stars without proper motion measurements, and 
+coordinates, find all stars without proper motion measurements, and
 apply the cuts recommended by Henry.
 
 ### Velocity maps
@@ -26,3 +26,9 @@ APOGEE DR14 + Gaia DR2 stars shown in galactocentric coordinates. Plots show
 
 Calculate the velocity dispersions for the asymmetric drift model from
 Bovy+2012 and BT08. Fit them with simple profiles.
+
+## Triaxial Potential
+
+[Notebook](notebooks/4-compare_potentials)
+
+Explore the triaxial potential functionality in galpy.
