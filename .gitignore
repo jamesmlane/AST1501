@@ -1,5 +1,5 @@
 # Project
-./data/astronn/*
+./data/astronn/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
