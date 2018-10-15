@@ -67,7 +67,7 @@ vrot_sol = 220 # In km/s
 r_eval = 8. # In kpc
 
 # Name of the output directory
-dir = './run4'
+dir = './run5'
 
 
 # ----------------------------------------------------------------------------
@@ -144,23 +144,23 @@ qdf = df.quasiisothermaldf(hr= 2*apu.kpc,
 ## Setup the integration grids and prepare for integration
 
 # Deltas
-delta_vR = 10.
-delta_vT = 10.
+delta_vR = 40.
+delta_vT = 40.
 
 # Set ranges
 vR_range = np.arange( -2*sigma_vR, 2*sigma_vR+1, delta_vR )
 vT_range = np.arange( -2*sigma_vT, 2*sigma_vT+1, delta_vT )+vrot_sol
 
 # This goes along with a grid of distribution function values
-dfp = np.zeros((len(vR_range),len(vT_range)))
-df0 = np.zeros((len(vR_range),len(vT_range)))
+# dfp = np.zeros((len(vR_range),len(vT_range)))
+# df0 = np.zeros((len(vR_range),len(vT_range)))
 
 # Print the number of velocities
 print( 'Number of grid velocities: '+str( len(vR_range)*len(vT_range)) )
 
 # Now set the triaxial properties which will be used
-tri_b = np.linspace(0.5, 2, num=3)
-tri_phi = np.linspace(0, np.pi/2, num=3)
+tri_b = [2,] #np.linspace(0.5, 2, num=3)
+tri_phi = np.linspace(0, np.pi/2, num=6)
 
 # Set the orbit times
 times = -np.array([0,10]) * apu.Gyr
@@ -205,13 +205,16 @@ for i in range( len(tri_b) ):
 
 # ----------------------------------------------------------------------------
 
-        ## Loop over the velocities
+        # Clean grid of distribution function values
+        dfp = np.zeros((len(vR_range),len(vT_range)))
+        df0 = np.zeros((len(vR_range),len(vT_range)))
 
+        ## Loop over the velocities
         for k in range( len(vR_range) ):
             for l in range( len(vT_range) ):
 
                 # Make the orbit
-                o = orbit.Orbit(vxvv=[  r_eval*apu.kpc,
+                o_temp = orbit.Orbit(vxvv=[  r_eval*apu.kpc,
                                         vR_range[k]*apu.km/apu.s,
                                         vT_range[l]*apu.km/apu.s,
                                         0.*apu.kpc,
@@ -219,13 +222,13 @@ for i in range( len(tri_b) ):
                                         0.*apu.radian])
 
                 # Evaluate the orbit in the qDF
-                df0[k,l] = qdf(o)
+                df0[k,l] = qdf(o_temp)
 
                 # Integrate
-                o.integrate(times, tripot)
+                o_temp.integrate(times, tripot)
 
                 # Now evaluate perturbed DR using the qDF and integrated orbit
-                dfp[k,l] = qdf(o(times[1]))
+                dfp[k,l] = qdf(o_temp(times[1]))
 
             ###l
         ###k
@@ -241,6 +244,8 @@ for i in range( len(tri_b) ):
         counter += 1
     ###j
 ###i
+
+pdb.set_trace()
 
 # Now output the results
 data_out = np.array((tri_b,tri_phi,vR_range,vT_range,df0_out,dfp_out))

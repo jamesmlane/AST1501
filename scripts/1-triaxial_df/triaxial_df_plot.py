@@ -45,7 +45,7 @@ from matplotlib import pyplot as plt
 ## Keywords
 
 # Assume exists
-dir='./run4'
+dir='./run5'
 
 # ----------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ dir='./run4'
 # .npy file
 data_in = np.load(dir+'/results.npy')
 
-# Unpack
+# Unpack. Note: b is 1st index, phi is 2nd index
 tri_b,tri_phi,vR_range,vT_range,df0_all,dfp_all = data_in
 
 # Number of parameters
@@ -75,14 +75,23 @@ delta_vT = np.unique(np.diff(vT_range))[0]
 ## Plot the distribution function
 
 fig = plt.figure( figsize=(10,10) )
-axs = fig.subplots(nrows=n_phi, ncols=n_b)
+# nrows is 1st index, ncols is 2nd index
+axs = fig.subplots(nrows=n_b, ncols=n_phi)
+
+# Reshape if only one of one parameter
+if n_phi == 1:
+    axs = axs.reshape((n_b,1))
+##fi
+if n_b == 1:
+    axs = axs.reshape((1,n_phi))
+##fi
 
 # Loop over the b and phi values
 for i in range( n_b ):
     for j in range( n_phi ):
 
         # Get the distribution function data
-        dfp = dfp_all[i,j]
+        dfp = df0_all[i,j]
 
         # Calculate the density of the DF
         densp = np.sum(dfp) * delta_vR * delta_vT
@@ -90,6 +99,7 @@ for i in range( n_b ):
         # Make the image
         intimg = np.rot90( dfp/densp )
 
+        # pdb.set_trace()
         img = axs[i,j].imshow(np.log10(intimg), interpolation='nearest',
                 extent=[np.min(vR_range), np.max(vR_range), np.min(vT_range), np.max(vT_range)],
                 cmap='Blues_r')
