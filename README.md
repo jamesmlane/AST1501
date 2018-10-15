@@ -6,29 +6,30 @@ James Lane AST 1501 Project at UofT
 
 ### Prepare Dataset
 
-[Notebook](notebooks/1-gaiadr2-apogee_dataset/gaiadr2-apogee_dataset.FIT)
+[Notebook](notebooks/1-gaiadr2-apogee_dataset/gaiadr2-apogee_dataset.ipynb)
 
-Prepare the dataset. Convert all quantities to galactocentric
-coordinates, find all stars without proper motion measurements, and
-apply the cuts recommended by Henry.
+Prepare the dataset. Convert all quantities to galactocentric coordinates, find all stars without proper motion measurements, and apply the cuts recommended by Henry.
 
 ### Velocity maps
 
 [Notebook](notebooks/2-velocity_maps/velocity_maps.ipynb)
 
-APOGEE DR14 + Gaia DR2 stars shown in galactocentric coordinates. Plots show
-2D density, heliocentric radial velocity, galactic proper motions, and Bovy+
-2012 model for comparison.
+APOGEE DR14 + Gaia DR2 stars shown in galactocentric coordinates. Plots show 2D density, heliocentric radial velocity, galactic proper motions, and Bovy+ 2012 model for comparison.
 
 ### Velocity dispersions
 
 [Notebook](notebooks/3-velocity_dispersions/velocity_dispersions.ipynb)
 
-Calculate the velocity dispersions for the asymmetric drift model from
-Bovy+2012 and BT08. Fit them with simple profiles.
+Calculate the velocity dispersions for the asymmetric drift model from Bovy+2012 and BT08. Fit them with simple profiles.
 
 ## Triaxial Potential
 
 [Notebook](notebooks/4-compare_potentials)
 
-Explore the triaxial potential functionality in galpy.
+Explore the triaxial potential functionality in galpy. Compare the triaxial potential to the MWPotential2014 model in galpy.
+
+## Triaxial Potential Decomposition
+
+[Notebook](notebooks/potential_decomposition.ipynb)
+
+Decompose the triaxial NFW potential + MWPotential2014 disk and bulge into a power law at various radial slices as well as a sinusoidal component.
