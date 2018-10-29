@@ -8,6 +8,9 @@ data/generated
 # Scratch space
 scratch/
 
+# Movies
+*.mp4
+
 ## Default
 
 # Byte-compiled / optimized / DLL files
