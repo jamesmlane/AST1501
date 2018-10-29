@@ -1,5 +1,14 @@
-# Project
+## Project-specific
+
+# Data directories. Big files that are
+# easily generated. Don't save.
 data/astronn/
+data/generated
+
+# Scratch space
+scratch/
+
+## Default
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
