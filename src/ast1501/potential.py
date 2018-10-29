@@ -33,7 +33,7 @@ from matplotlib import pyplot as plt
 # from astropy.io import fits
 # from astropy.coordinates import SkyCoord
 # from astropy import table
-from astropy import units as u
+from astropy import units as apu
 # from astropy import wcs
 
 ## galpy
