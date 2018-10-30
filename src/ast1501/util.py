@@ -43,8 +43,7 @@ import sys, os, pdb
 # ----------------------------------------------------------------------------
 
 def stround(num,nplace):
-    '''
-    stround:
+    '''stround:
     
     Return a number, rounded to a certain number of decimal points, as a string
     
