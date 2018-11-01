@@ -78,7 +78,7 @@ def get_MWPotential2014():
     return parm_arr
 #def
 
-def make_MWPotential2014_triaxialNFW(  halo_b=1.0, halo_phi=0.0, halo_c=1.0
+def make_MWPotential2014_triaxialNFW(  halo_b=1.0, halo_phi=0.0, halo_c=1.0,
                                     halo_amp=None, halo_a=None):
     '''make_MWPotential2014_triaxial:
     
@@ -100,7 +100,7 @@ def make_MWPotential2014_triaxialNFW(  halo_b=1.0, halo_phi=0.0, halo_c=1.0
     _, _, _, _, _, _, mwhalo_a, mwhalo_amp = get_MWPotential2014()
     
     # Check argument choices
-    if halo_mass == None:
+    if halo_amp == None:
         use_halo_amp = mwhalo_amp
     else: use_halo_amp = halo_mass
     ##ie
@@ -109,8 +109,8 @@ def make_MWPotential2014_triaxialNFW(  halo_b=1.0, halo_phi=0.0, halo_c=1.0
     else: use_halo_a = mwhalo_a
     ##ie
     
-    return potential.TriaxialNFW(amp=use_mwhalo_amp, a=use_mwhalo_a, b=halo_b, 
-                                    pa=halo_phi, c=halo_c)
+    return potential.TriaxialNFWPotential(amp=use_halo_amp, a=use_halo_a, 
+                                    b=halo_b, pa=halo_phi, c=halo_c)
 #def
 
 def make_tripot_dsw(trihalo, tform, tsteady, 
@@ -141,29 +141,29 @@ def make_tripot_dsw(trihalo, tform, tsteady,
         mwhalo_a, mwhalo_amp = get_MWPotential2014()
     
     # Check potential arguments
-    if mwbulge == None
+    if mwbulge == None:
         use_mwbulge = potential.PowerSphericalPotentialwCutoff(amp=mwbulge_amp, 
             alpha=mwbulge_alpha, rc=mwbulge_rc)
     else: use_mwbulge = mwbulge
     ##ie
-    if mwdisk == None
+    if mwdisk == None:
         use_mwdisk = potential.MiyamotoNagaiPotential(amp=mwdisk_amp, 
             a=mwdisk_a, b=mwdisk_b)
     else: use_disk = mwdisk
     ##ie
-    if mwhalo == None
+    if mwhalo == None:
         use_mwhalo = potential.NFWPotential(amp=mwhalo_amp, a=mwhalo_a)
     else: use_mwhalo = mwhalo
     ##ie
     
     # Wrap the old halo in a DSW
-    mwhalo_decay_dsw = potential.DehnenSmoothWrapperPotential(pot=mwhalo, 
+    mwhalo_decay_dsw = potential.DehnenSmoothWrapperPotential(pot=use_mwhalo, 
         tform=tform*apu.Gyr, tsteady=tsteady*apu.Gyr, decay=True)
     
     # Wrap the triaxial halo in a DSW:
     trihalo_dsw = potential.DehnenSmoothWrapperPotential(pot=trihalo,
         tform=tform*apu.Gyr, tsteady=tsteady*apu.Gyr)
         
-    return [mwbulge, mwdisk, mwhalo, mwhalo_decay_dsw, trihalo_dsw]
+    return [use_mwbulge, use_mwdisk, mwhalo_decay_dsw, trihalo_dsw]
 
 #
