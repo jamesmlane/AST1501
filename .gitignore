@@ -11,6 +11,9 @@ scratch/
 # Movies
 *.mp4
 
+# Transfer script
+sync_src_personal.bash
+
 ## Default
 
 # Byte-compiled / optimized / DLL files
