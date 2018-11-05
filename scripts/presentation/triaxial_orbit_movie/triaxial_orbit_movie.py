@@ -1,15 +1,14 @@
 # ----------------------------------------------------------------------------
 #
-# TITLE -
+# TITLE - triaxial_orbit_movie.py
 # AUTHOR - James Lane
-# PROJECT -
-# CONTENTS:
+# PROJECT - AST1501
 #
 # ----------------------------------------------------------------------------
 
 ### Docstrings and metadata:
 '''
-
+Make a movie of some orbits in a growing triaxial potential
 '''
 __author__ = "James Lane"
 
@@ -19,22 +18,15 @@ __author__ = "James Lane"
 import numpy as np
 import sys, os, pdb, copy
 import glob
-# import subprocess
 
 ## Plotting
 from matplotlib import pyplot as plt
 from matplotlib import animation
-# from matplotlib.backends.backend_pdf import PdfPages
-# from matplotlib import colors
-# from matplotlib import cm
-# import aplpy
+from matplotlib import colors
+from matplotlib import cm
 
 ## Astropy
-# from astropy.io import fits
-# from astropy.coordinates import SkyCoord
-# from astropy import table
 from astropy import units as apu
-# from astropy import wcs
 
 ## galpy
 from galpy import orbit
@@ -43,94 +35,59 @@ from galpy.util import bovy_coords as gpcoords
 from galpy.util import bovy_conversion as gpconv
 from galpy.util import bovy_plot as gpplot
 
-from scipy.signal import argrelextrema
-
-import ophstream.misc
+# Project-specific
+sys.path.insert(0, os.path.abspath('../../../src') )
+import ast1501.potential
 
 # ----------------------------------------------------------------------------
 
-# Time in Gyr when the simulation will 'begin' (In the past!)
-t0 = 3
+# Keywords
+
+# Simulation length 
+t0 = 5 # Gyr
 
 # The times at which the triaxial halo will begin to grow and end growing
 # with respect to t0
-t_tri_begin = 1 # 1 Gyr after the simulation starts
-t_tri_end = 3 # 4 Gyr after the simulation starts
+tform = 1 # 1 Gyr after the simulation starts
+tsteady = 4 # 3 Gyr after the simulation starts
+
+# ----------------------------------------------------------------------------
 
 ### Make the potential
 
-# Get MWPotential2014
+# Make MWPotential2014
 mwpot = potential.MWPotential2014
-mwbulge = copy.deepcopy(mwpot[0])
-mwdisk = copy.deepcopy(mwpot[1])
-mwhalo = copy.deepcopy(mwpot[2])
 
-# Make the potential
-mwhalo_a = mwhalo.a * mwhalo._ro * apu.kpc
-mwhalo_amp = mwhalo.dens(mwhalo_a,0) * 16 * mwhalo.a**3 * np.pi * \
-             gpconv.mass_in_msol(mwhalo._vo, mwhalo._ro) * apu.M_sun
+# Make the triaxial halo
+trihalo = ast1501.potential.make_MWPotential2014_triaxialNFW(halo_b=2.0, 
+    halo_phi=0.0, halo_c=1.0)
 
-mwdisk_a = mwdisk._a * mwdisk._ro * apu.kpc
-mwdisk_b = mwdisk._b * mwdisk._ro * apu.kpc
-mwdisk_amp = mwdisk._amp * gpconv.mass_in_msol(mwdisk._vo, mwdisk._ro) * apu.M_sun
-
-mwbulge_r1 = 1
-mwbulge_amp = mwbulge.dens(mwbulge_r1,0) * np.exp((1/mwbulge.rc)**2) * \
-              gpconv.dens_in_msolpc3(mwhalo._vo, mwhalo._ro) * apu.M_sun / apu.pc**3
-mwbulge_alpha = mwbulge.alpha
-mwbulge_rc = mwbulge.rc * mwbulge._ro * apu.kpc
-
-# Generate the scalped potentials
-mwbulge = potential.PowerSphericalPotentialwCutoff(amp=mwbulge_amp, alpha=mwbulge_alpha, rc=mwbulge_rc)
-# mwbulge.turn_physical_off()
-mwdisk = potential.MiyamotoNagaiPotential(amp=mwdisk_amp, a=mwdisk_a, b=mwdisk_b)
-# mwdisk.turn_physical_off()
-mwhalo = potential.NFWPotential(amp=mwhalo_amp, a=mwhalo_a)
-# mwhalo.turn_physical_off()
-mwpot = [mwhalo, mwdisk, mwbulge]
-
-# Make the negative amplitude NFW and wrap it in a DehnenSmoothWrapperPotential
-mwhalo_rev = potential.NFWPotential(amp=mwhalo_amp*-1,
-                                    a=mwhalo_a)
-# mwhalo_rev.turn_physical_off()
-mwhalo_rev_dsw = potential.DehnenSmoothWrapperPotential(pot=mwhalo_rev,
-                                        tform= t_tri_begin * apu.Gyr,
-                                        tsteady= t_tri_end * apu.Gyr
-                                        )
-# mwhalo_rev_dsw.turn_physical_off()
-
-trihalo = potential.TriaxialNFWPotential(amp=mwhalo_amp,
-                                        a=mwhalo_a,
-                                        b=3.,
-                                        c=1.0,
-                                        pa=0.)
-
-trihalo_dsw = potential.DehnenSmoothWrapperPotential(pot=trihalo,
-                            tform= t_tri_begin * apu.Gyr,
-                            tsteady= t_tri_end * apu.Gyr)
-                                        
-tripot = [ mwhalo_rev_dsw,
-           mwhalo,
-           trihalo_dsw,
-           mwdisk,
-           mwbulge ]
+# Make MWPotential2014 with DSW around the halo and triaxial halo
+tripot = ast1501.potential.make_tripot_dsw(trihalo=trihalo, tform=tform, 
+    tsteady=tsteady)
 
 # ----------------------------------------------------------------------------
 
 ### Make the orbits
 
-times = np.arange(0,t0,0.005) * apu.Gyr
+# First get the kinematics for circular orbits
+r = np.array([1,2,4])
+vc = potential.vcirc(mwpot, r, 0)
 
-o1 = orbit.Orbit( vxvv=[1.,
-                        0.,
-                        1.,
-                        0.,
-                        0.,
-                        0.] )
-o2 = orbit.Orbit( vxvv=[1.,0.,1.,0.,0.,np.pi] )
+# Times
+times = np.arange(0,t0,0.0025) * apu.Gyr
 
+# Orbit declaration
+o1 = orbit.Orbit( vxvv=[r[0],0.,vc[0],0.,0.,0.] )
+o2 = orbit.Orbit( vxvv=[r[1],0.,vc[1],0.,0.,0.] )
+o3 = orbit.Orbit( vxvv=[r[2],0.,vc[2],0.,0.,0.] )
+
+# Integrate
+print('Integrating')
 o1.integrate(times,tripot)
 o2.integrate(times,tripot)
+o3.integrate(times,tripot)
+print('Done integration')
 
 # ----------------------------------------------------------------------------
 
@@ -139,67 +96,74 @@ o2.integrate(times,tripot)
 fig = plt.figure( figsize=(6,6) )
 ax = fig.add_subplot(111)
 
-xlim = [-1.5,1.5]
-ylim = [-1.5,1.5]
+xlim = [-5,5]
+ylim = [-5,5]
 
 ### Axis 1: XY
 ax.set_xlim(xlim[0],xlim[1])
 ax.set_ylim(ylim[0],ylim[1])
-ax.set_ylabel('Y [8 kpc]', fontsize=14, labelpad=10.0)
-ax.set_xlabel('X [8 kpc]', fontsize=14, labelpad=10.0)
+ax.set_ylabel('Y  [8 kpc]', fontsize=14, labelpad=10.0)
+ax.set_xlabel('X  [8 kpc]', fontsize=14, labelpad=10.0)
 ax.tick_params(right='on', top='on', labelbottom='off', direction='in')
 
-line_color = 'DodgerBlue'
-line_color_tri = 'Red'
-pt_ec = 'Black'
+line1_color = 'DodgerBlue'
+line2_color = 'Red'
+line3_color = 'Purple'
+line_width = 2
+point_size = 25
+pt_ec = 'None'
 
 # Setup lines
-line1, = ax.plot([], [], '-', color=line_color, linewidth=1, zorder=1)
-pt1 = ax.scatter([], [], color=line_color, s=3, edgecolor=pt_ec, zorder=1)
-line2, = ax.plot([], [], '-', color=line_color, linewidth=1, zorder=1)
-pt2 = ax.scatter([], [], color=line_color, s=3, edgecolor=pt_ec, zorder=1)
+line1, = ax.plot([], [], '-', color=line1_color, linewidth=line_width, zorder=1)
+pt1 = ax.scatter([], [], color=line1_color, s=point_size, edgecolor=pt_ec, zorder=1)
+line2, = ax.plot([], [], '-', color=line2_color, linewidth=line_width, zorder=1)
+pt2 = ax.scatter([], [], color=line2_color, s=point_size, edgecolor=pt_ec, zorder=1)
+line3, = ax.plot([], [], '-', color=line3_color, linewidth=line_width, zorder=1)
+pt3 = ax.scatter([], [], color=line3_color, s=point_size, edgecolor=pt_ec, zorder=1)
 time_text = ax.annotate('', xy=(0.7,0.9), xycoords='axes fraction', fontsize=14)
+tri_text = ax.annotate('', xy=(0.7,0.95), xycoords='axes fraction', fontsize=14)
 time_template = '%.2f Gyr'
-time_template_tri = '%.2f Gyr\ntriaxiality on'
 
+# Initialization function
 def init():
     line1.set_data([], [])
     pt1.set_offsets([])
     line2.set_data([], [])
     pt2.set_offsets([])
+    line3.set_data([], [])
+    pt3.set_offsets([])
 
     time_text.set_text('')
+    tri_text.set_text('')
 
-    return  pt1, line1, pt2, line2, time_text
+    return  pt1, line1, pt2, line2, pt3, line3, time_text, tri_text
 #def
 
 # Animate function, argument is the frame number.
 def animate(i):
 
     # Plot lines and points.
-
-    if times[i].value < t_tri_begin:
-        
-        line1.set_data( o1.x(times[:i+1]), o1.y(times[:i+1]) )
-        pt1.set_offsets( (o1.x(times[i]), o1.y(times[i])) )
-        line2.set_data( o2.x(times[:i+1]), o2.y(times[:i+1]) )
-        pt2.set_offsets( (o2.x(times[i]), o2.y(times[i])) )
-        
+    line1.set_data( o1.x(times[:i+1]), o1.y(times[:i+1]) )
+    pt1.set_offsets( (o1.x(times[i]), o1.y(times[i])) )
+    line2.set_data( o2.x(times[:i+1]), o2.y(times[:i+1]) )
+    pt2.set_offsets( (o2.x(times[i]), o2.y(times[i])) )
+    line3.set_data( o3.x(times[:i+1]), o3.y(times[:i+1]) )
+    pt3.set_offsets( (o3.x(times[i]), o3.y(times[i])) )
+    
+    # Check if before triaxiality on
+    if times[i].value < tform:
         time_text.set_text( time_template % (times[i].value) )
-    else:
-        
-        line1.set_data( o1.x(times[:i+1]), o1.y(times[:i+1]) )
-        # line1.set_color('Red')
-        pt1.set_offsets( (o1.x(times[i]), o1.y(times[i])) )
-        line2.set_data( o2.x(times[:i+1]), o2.y(times[:i+1]) )
-        # line2.set_color('Red')
-        pt2.set_offsets( (o2.x(times[i]), o2.y(times[i])) )
-        
-        time_text.set_text( time_template_tri % (times[i].value) )
+        tri_text.set_text('')
+    else:    
+        time_text.set_text( time_template % (times[i].value) )
+        tri_text.set_text('Triaxial On')
+##ie
 
-    return  pt1, line1, pt2, line2, time_text
+    return  pt1, line1, pt2, line2, pt3, line3, time_text, tri_text
 #def
 
+# Generate animation
+print('Compiling animation')
 anim = animation.FuncAnimation(fig, animate, frames=len(times),
-                                interval=1)
-anim.save('animation.mp4', writer='ffmpeg', fps=25, dpi=300)
+                                interval=2)
+anim.save('animation.mp4', writer='ffmpeg', fps=45, dpi=300)
