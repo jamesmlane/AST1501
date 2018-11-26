@@ -14,6 +14,11 @@ scratch/
 # Transfer script
 sync_src_personal.bash
 
+# Notebook initialization script
+notebooks/start_notebook.bash
+
+################################################################################
+
 ## Default
 
 # Byte-compiled / optimized / DLL files
