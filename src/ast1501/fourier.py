@@ -20,112 +20,85 @@ import sys, os, pdb, copy
 
 # ----------------------------------------------------------------------------
 
-# 
-def calculate_power_spectrum2d(data, d1, d2):
+def psd(arr,dx,pad=True,return_phase=True):
     '''
-    calculate_power_spectrum:
+    psd:
     
-    Calculate the Fourier coefficients of a data array. Similar to Bovy+2015?
+    Calculate the power spectrum of an array
     
     Args:
-        data (NxM float array) - Input data. Must be 2D
-        d1 (float) - bin size in the 1st dimension of data
-        d2 (float) - bin size in the 2nd dimension of data
-    
+        arr (array) - 1D data array
+        dx (float) - spacing of arr
+        pad (bool) - Pad the data with N+1 zeros? [True]
+        return_phase (bool) - Return the phase information? [True]
+        
     Returns:
-        pk (float array) - 
+        ps (array) - The power spectrum of the array
     '''
-
-    # Make sure the array is the correct shape
-    if len(data.shape) != 2: 
-        raise RuntimeError('Input array must be 2D')
-    ##fi
+    # First copy the data
+    arr = copy.deepcopy(arr)
     
-    # Subtract the DC component
-    image -= np.mean(data[True-np.isnan(data)])
+    # Remove NaN
+    arr[ np.isnan(arr) ] = 0.
     
-    # Axis lengths
-    n = data.shape[0]
-    m = data.shape[1]
+    # Account for padding
+    if pad:
+        n= 2*len(arr)+1
+    else:
+        n= len(arr)
     
-    # Pad the input array with N+1 and M+1 zeros
-    data_pad = np.pad(data, 
-        pad_width=( (0,int(n+1)), (0,int(m+1)) ), 
-        mode='constant', constant_values=0)
+    # Take the 1D FFT
+    arr_fft= np.fft.fftshift(np.fft.fft(arr,n=n))
     
-    # Calculate the 2D Fourier transform and the power
-    ft2d = np.fft.fft2(data_pad)
-    p2d = np.abs(ft2d) / ( n * m )**2
+    # Get the phase information
+    if return_phase:
+        phase = np.angle( arr_fft )
     
-    # Shift low frequency components to center
-    p2d_shift = np.fft.fftshift(p2d)
+    # Then calculate the periodogram estimate of the power spectrum
+    ret= np.abs(arr_fft)**2. + np.abs(arr_fft[::-1])**2.
     
-    # Calculate the radially averaged power, first make arrays 
-    # with all of the frequencies
-    # kx = np.arange(0,n+1,1.0) / (n*d1)
-    # ky = np.arange(0,m+1,1.0) / (m*d2)
-    kx = np.fft.fftfreq(n,d1)
-    ky = np.fft.fftfreq(m,d2)
-    kx2d, ky2d = np.meshgrid(kx,ky,indexing='ij')
+    # Correct the 0 order term
+    if pad:
+        ret[len(arr)]*= 0.5
+    else:
+        ret[len(arr)/2]*= 0.5
     
-    # Now shift them by the frequency of the middle bin
-    kx2d -= kx[int(round(n/2))]
-    ky2d -= ky[int(round(m/2))]
-    
-    # Now calculate the squared sum of the wavenumber
-    k2d = np.sqrt(np.square(kx2d) + np.square(ky2d))
-    
-    # Now do the radial averaging. The minimum k value will be a combination of
-    # the two 1st frequencies. The max will be a combination of the maximum 
-    # frequencies.
-    k_min = 0.1 # Not 0
-    k_max = np.sqrt( np.square( np.max(kx) ) + np.square( np.max(ky) ) )
-    
-    # Now make a range for k
-    k_range = np.linspace( k_min, k_max, 10 )
-    dk = np.average(np.diff(k_range)) # Will all be the same
-    pk = np.zeros(len(k_range))
-    
-    # pdb.set_trace()
-    
-    for i in range(len(pk)):
-        where_in_k_bin = np.where(  ( (k2d) < k_range[i]+dk/2 ) & 
-                                    ( (k2d) > k_range[i]-dk/2 ))
-        if len(where_in_k_bin[0]) == 0: continue
-        pk[i] = 4*np.pi**2 * np.average( p2d_shift[where_in_k_bin] )
-    ###i
-            
-    return k_range,pk,[k2d,]
-#def
+    # Output
+    if return_phase:
+        return (np.fft.fftshift(np.fft.fftfreq(n,dx)),
+                ret/n**2.*2.,phase)
+    else:
+        return (np.fft.fftshift(np.fft.fftfreq(n,dx)),
+                ret/n**2.*2.)
 
 def psd2d(image,pad=True):
-    """
-    NAME:
-       psd2d
-    PURPOSE:
-       Calculate the 2D power spectrum of an image
-    INPUT:
-       image - the image [NxM]
-    OUTPUT:
-       the 2D power spectrum using definitions of NR 13.4 eqn. (13.4.5)
-    HISTORY:
-       2014-06-06 - Written - Bovy (IAS)
-    """
-    # First copy
+    '''
+    psd2d:
+    
+    Calculate the 2D fourier transform of an image and determine it's 2D 
+    power spectrum using the periodogram estimate.
+    
+    Args:
+        image (ndarray) - The data image
+        pad (bool) - Pad the data with N+1 zeros? [True]
+    
+    Returns:
+        ps (ndarray) - The 2D power spectrum    
+    '''
+    # First copy the data
     image = copy.deepcopy(image)
     
-    #First rm NaN
-    image[np.isnan(image)]= 0.
-    #First take the 2D FFT
+    #Now rm NaN
+    image[ np.isnan(image) ]= 0.
     
-    # pad 2n+1 0s
-    if pad:
-        image = np.pad(image, 
-            pad_width=( (0,int(image.shape[0]+1)), (0,int(image.shape[1]+1)) ), 
-            mode='constant', constant_values=0)
-    ##fi
+    # pad N+1 0s
+    # if pad:
+    #     image = np.pad(image, 
+    #         pad_width=( (0,int(image.shape[0]+1)), (0,int(image.shape[1]+1)) ), 
+    #         mode='constant', constant_values=0)
+    # ##fi
     
-    
+    # Compute the FFT
     if pad:
         image_fft= np.fft.fftshift(np.fft.fft2(image,
                                                      s=(2*image.shape[0]+1,
@@ -134,9 +107,12 @@ def psd2d(image,pad=True):
         image_fft= np.fft.fftshift(np.fft.fft2(image,
                                                      s=(image.shape[0],
                                                         image.shape[1])))
-    #Then calculate the periodogram estimate of the power spectrum
+                                                        
+    #Calculate the periodogram estimate of the power spectrum
     ret= np.abs(image_fft)**2.\
         +np.abs(image_fft[::-1,::-1])**2.
+        
+    # Return the results
     if pad:
         ret[image.shape[0],image.shape[1]]*= 0.5 #correct zero order term
         return ret/(2.*image.shape[0]+1)**2./(2.*image.shape[1]+1)**2.*4.
@@ -146,25 +122,26 @@ def psd2d(image,pad=True):
 #def
 
 def psd1d(image,dx,binsize=1.,pad=True):
-    """
-    NAME:
-       psd1d
-    PURPOSE:
-       Calculate the 1D, azimuthally averaged power spectrum of an image
-    INPUT:
-       image - the image [NxM]
-       dx- spacing in X and Y directions
-       binsize= (1) radial binsize in terms of Nyquist frequency
-    OUTPUT:
-       the 1D power spectrum using definitions of NR 13.4 eqn. (13.4.5)
-    HISTORY:
-       2014-06-06 - Written - Bovy (IAS)
-    """
+    '''
+    psd1d:
+    
+    Calculate the 1D, azimuthally averaged power spectrum of an image
+    
+    Args:
+        image ( NxM array ) - the data image
+        dx (float) - The spacing in the X and Y directions
+        binsize (float) - radial binsize in terms of the Nyquist frequency [1.0]
+        pad (bool) - Pad the input image with N+1 zeros? [True]
+    
+    Returns
+        ps1d (array) - The 1D power spectrum
+    '''
     
     image = copy.deepcopy(image)
     
-    #First subtract DC component
-    image -= np.mean(image[ np.where( ~np.isnan(image) ) ])
+    #First subtract DC component, taking into account NaN
+    image -= np.mean( image[ np.where( ~np.isnan(image) ) ] )
+    
     #Calculate the 2D PSD
     ret2d= psd2d(image,pad=pad)
     nr,radii,ret= azimuthalAverage(ret2d,returnradii=False,binsize=binsize,
@@ -178,39 +155,49 @@ def psd1d(image,dx,binsize=1.,pad=True):
 def azimuthalAverage(image, center=None, stddev=False, returnradii=False, return_nr=False, dx= None, dy= None,
         binsize=0.5, weights=None, steps=False, interpnan=False, left=None, right=None,
         mask=None ):
-    """
-    Calculate the azimuthally averaged radial profile.
-    image - The 2D image
-    center - The [x,y] pixel coordinates used as the center. The default is 
-             None, which then uses the center of the image (including 
-             fractional pixels).
-    dx, dy- spacing in x and y (must either both be set or not set at all)
-    stddev - if specified, return the azimuthal standard deviation instead of the average
-    returnradii - if specified, return (radii_array,radial_profile)
-    return_nr   - if specified, return number of pixels per radius *and* radius
-    binsize - size of the averaging bin.  Can lead to strange results if
-        non-binsize factors are used to specify the center and the binsize is
-        too large
-    weights - can do a weighted average instead of a simple average if this keyword parameter
-        is set.  weights.shape must = image.shape.  weighted stddev is undefined, so don't
-        set weights and stddev.
-    steps - if specified, will return a double-length bin array and radial
-        profile so you can plot a step-form radial profile (which more accurately
-        represents what's going on)
-    interpnan - Interpolate over NAN values, i.e. bins where there is no data?
-        left,right - passed to interpnan; they set the extrapolated values
-    mask - can supply a mask (boolean array same size as image with True for OK and False for not)
-        to average over only select data.
-    If a bin contains NO DATA, it will have a NAN value because of the
-    divide-by-sum-of-weights component.  I think this is a useful way to denote
-    lack of data, but users let me know if an alternative is prefered...
+    '''
+    azimuthalAverage:
     
-    """
+    Calculate the azimuthally averaged radial profile.
+    
+    If a bin contains NO DATA, it will have a NAN value because of the
+    divide-by-sum-of-weights component.
+    
+    Args:
+        image (array) - The data image
+        center (2-array) - The [x,y] pixel coordinates used as the center. 
+            If None, then use the center of the image (including fractional 
+            pixels). [None]
+        stddev (bool) - Return the azimuthal standard deviation instead of the 
+            average [False]
+        returnradii (bool) - return (radii_array,radial_profile) [False]
+        return_nr [bool] - return number of pixels per radius *and* 
+            radius [False]
+        dx,dy (float) - spacing in x and y (must either both be set or not set 
+            at all) [None,None]
+        binsize (float) - size of the averaging bin.  Can lead to strange 
+            results if non-binsize factors are used to specify the center and the 
+            binsize is too large [0.5]
+        weights (array) - can do a weighted average instead of a simple average 
+            if this keyword parameter is set. weights.shape must = image.shape.  
+            weighted stddev is undefined, so don't set weights and 
+            stddev. [None]
+        steps (bool) - if specified, will return a double-length bin array and 
+            radial profile so you can plot a step-form radial profile 
+            (which more accurately represents what's going on) [False]
+        interpnan (bool) - Interpolate over NAN values, i.e. bins where there 
+            is no data?
+        left,right (float,float) - passed to interpnan; they set the 
+            extrapolated values [None,None]
+        mask - can supply a mask (boolean array same size as image with True 
+            for OK and False for not) to average over only select data. [None]
+    '''
+    
     # Calculate the indices from the image
     x, y = np.indices(image.shape)
     if not image.shape[0] == image.shape[1]:
-        y= y.astype('float')
-        y*= (image.shape[0]-1)/(image.shape[1]-1.)
+        y = y.astype('float')
+        y *= (image.shape[0]-1)/(image.shape[1]-1.)
 
     if center is None:
         center = np.array([(x.max()-x.min())/2.0, (y.max()-y.min())/2.0])
@@ -224,8 +211,6 @@ def azimuthalAverage(image, center=None, stddev=False, returnradii=False, return
 
     if mask is None:
         mask = np.ones(image.shape,dtype='bool')
-    # obsolete elif len(mask.shape) > 1:
-    # obsolete     mask = mask.ravel()
 
     # the 'bins' as initially defined are lower/upper bounds for each bin
     # so that values will be in [lower,upper)  
