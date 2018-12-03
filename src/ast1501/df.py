@@ -3,7 +3,8 @@
 # TITLE - df.py
 # AUTHOR - James Lane
 # PROJECT - AST1501
-# CONTENTS:
+# CONTENTS: 
+# 1. evaluate_df_adaptive_vrvt
 #
 # ----------------------------------------------------------------------------
 
@@ -23,7 +24,7 @@ import sys, os, pdb, copy
 
 ## Plotting
 from matplotlib import pyplot as plt
-# from matplotlib.backends.backend_pdf import PdfPages
+# from matplotlib.backends.backend_pdf import Pdfages
 # from matplotlib import colors
 # from matplotlib import cm
 # import aplpy
@@ -50,8 +51,8 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
                                 df_evaluator,
                                 vR_range,
                                 vT_range,
-                                dfp,
-                                df0=None,
+                                df,
+                                compute_unperturbed=False,
                                 threshold=0.001,
                                 threshold_norm=True):
     '''
@@ -71,49 +72,37 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
             an argument
         vR_range (array) - array of radial velocities
         vT_range (array) - array of tangential velocities
-        dfp (array) - array to hold the perturbed DF
-        df0 (array) - array to hold the unperturbed DF. If None then don't 
-            compute the unperturbed DF [None]
+        df (array) - array to hold the DF
         threshold (float) - The threshold DF value, normalized such that the 
             maximum DF value is 1 (see threshold_real) [0.001]
         threshold_norm (bool) - Is the threshold value normalized to the 
             maximum of the DF or is it just a real DF value? 
     
     Returns:
-        df0 (array) - array of unperturbed DF values
-        dfp (array) - array of perturbed DF values
+        df (array) - array of DF values
     '''
     
-    # Are we computing the unperturbed DF?
-    if df0 == None:
-        _compute_unperturbed = False
-    else:
-        _compute_unperturbed = True
-    
     # First check that the dimensions are correct:
-    if (df0.shape != (len(vR_range),len(vT_range))) and _compute_unperturbed == True:
-        raise RuntimeError('Unperturbed DF array not correct size')
-    if (dfp.shape != (len(vR_range),len(vT_range))):
-        raise RuntimeError('Perturbed DF array not correct size')
+    if (df.shape != (len(vR_range),len(vT_range))):
+        raise RuntimeError('DF array not correct size')
     
     # Now 0 all of the elements of the DF arrays
-    if _compute_unperturbed:
-        df0[:,:] = 0
-    dfp[:,:] = 0
+    df[:,:] = 0
     
     # Make an array of values that tell us if we've computed the DF at this 
     # location or not
-    computed_df = np.zeros_like(dfp)
+    computed_df = np.zeros_like(df)
     
     # Unpack coordinates
     R,z,phi = R_z_phi
     
-    # Get physical conversions
-    pot = copy.deepcopy(pot)
+    # Make sure there is no physical output
+    pot = copy.copy(pot)
     potential.turn_physical_off(pot)
     
     # Now find the maximum value of the perturbed DF. Assume that we'll start 
-    # vR = 0 km/s and vT = 220 km/s, assuming they're in the arrays:
+    # vR = 0 km/s and vT = 220 km/s, assuming they're in the arrays. Otherwise 
+    # start in the middle of the arrays.
     vR_start = 0
     vT_start = 220
     if (vR_start < vR_range[0]) or (vR_start > vR_range[-1]):
@@ -126,13 +115,13 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         vT_start = vT_range[ np.argmin( np.abs( vT_range-vT_start ) ) ]
     ##fi
     
-    # Now star the search for the maximum DF point. Pick the first point 
+    # Now start the search for the maximum DF point. Pick the first point 
     # in the grid
     cur_point = [  np.where(vR_start == vR_range)[0][0], 
                     np.where(vT_start == vT_range)[0][0] ]
     # Initialize checker variable
     found_df_max = False   
-    fake_maxima = np.zeros_like(dfp)
+    fake_maxima = np.zeros_like(df)
     
     # Loop over the maximum finder
     while found_df_max == False:
@@ -140,38 +129,42 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         # If we have butt up against the edge of the input array consider this 
         # a failed evaluation attempt
         if cur_point[0] == 0 or cur_point[0] == len(vR_range)-1 or cur_point[1] == 1 or cur_point[1] == len(vT_range)-1:
-            raise RuntimeError('Attemped to evaluate perturbed DF outside of supplied grid')
+            raise RuntimeError('Attempting to evaluate perturbed DF outside of supplied grid')
         ##fi
         
-        if computed_df[ cur_point[0] , cur_point[1] ] == 0
+        if computed_df[ cur_point[0] , cur_point[1] ] == 0:
             # Calculate the orbit
-            cur_o = orbit.Orbit(vxvv=[R*apu.kpc, 
-                                  vR_range[cur_point[0]]*apu.km/apu.s, 
-                                  vT_range[cur_point[1]]*apu.km/apu.s, 
-                                  z*apu.kpc,
-                                  0*apu.km/apu.s,
-                                  phi*apu.radian])
+            cur_o = orbit.Orbit(vxvv=[  R*apu.kpc, 
+                                        vR_range[cur_point[0]]*apu.km/apu.s, 
+                                        vT_range[cur_point[1]]*apu.km/apu.s, 
+                                        z*apu.kpc,
+                                        0*apu.km/apu.s,
+                                        phi*apu.radian
+                                    ])
         
             # Should the unperturbed DF be computed? 
-            if _compute_unperturbed:
-                df0[ cur_point[0] , cur_point[1] ] = df_evaluator(cur_o)
-            
+            if compute_unperturbed:
+                df[ cur_point[0] , cur_point[1] ] = df_evaluator(cur_o)
             # Integrate the orbit and evaluate the perturbed DF
-            cur_o.integrate(times, pot)
-            dfp[ cur_point[0] , cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+            else:
+                cur_o.integrate(times, pot)
+                df[ cur_point[0] , cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+            ##ie
             computed_df[ cur_point[0] , cur_point[1] ] = 1.
             
         # Now check all points around this point
         check_df_around = np.zeros((3,3))
         grad_df_around = np.zeros((3,3))
-        check_df_around[1,1] = dfp[ cur_point[0] , cur_point[1] ]
+        check_df_around[1,1] = df[ cur_point[0] , cur_point[1] ]
         
         for i in range(3):
             for j in range(3):
                 
-                # Make sure this isn't the chosen point.
+                # Make sure this isn't the chosen point. We know we've already 
+                # evaluated the DF there.
                 if i == 1 and j == 1:
                     continue
+                ##fi
                 
                 # Determine the location of the subgrid points w.r.t. the 
                 # larger grid
@@ -180,7 +173,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
                 
                 # Check if the DF at this point has already been computed
                 if computed_df[ act_i , act_j ] == 1:
-                    check_df_around[ i, j ] = dfp[ act_i, act_j ]
+                    check_df_around[ i, j ] = df[ act_i, act_j ]
                 else:
                     # If it hasn't then run the orbit
                     check_around_o = orbit.Orbit(vxvv=[R*apu.kpc, 
@@ -191,13 +184,14 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
                                           phi*apu.radian])
                     
                     # Should the unperturbed DF be computed? 
-                    if _compute_unperturbed:
-                        df0[ act_i , act_j ] = df_evaluator(check_around_o)                      
-                    
-                    # Now integrate
-                    check_around_o.integrate(times,pot)
-                    dfp[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
-                    check_df_around[i,j] = dfp[ act_i , act_j ]
+                    if compute_unperturbed:
+                        df[ act_i , act_j ] = df_evaluator(check_around_o)                      
+                    ##fi
+                    else:
+                        check_around_o.integrate(times,pot)
+                        df[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
+                    ##ie
+                    check_df_around[i,j] = df[ act_i , act_j ]
                     computed_df[ act_i , act_j ] = 1.
                 ##ie
                 
@@ -223,7 +217,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
             else:
                 # We've found a maximum!
                 maximum_location = [ cur_point[0], cur_point[1] ]  
-                dfp_max = dfp[ cur_point[0], cur_point[1] ]
+                df_max = df[ cur_point[0], cur_point[1] ]
                 found_df_max = True
                 break  
             ##ie
@@ -233,11 +227,11 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         max_grad_loc = np.where( grad_df_around == np.max(grad_df_around) )
         max_grad_i = max_grad_loc[0][0]
         max_grad_j = max_grad_loc[1][0]
-        new_cur_i = cur_point[0] + max_grad_i
-        new_cur_j = cur_point[1] + max_grad_j
+        new_cur_i = cur_point[0] + max_grad_i - 1
+        new_cur_j = cur_point[1] + max_grad_j - 1
         
         # If we found a fake maximum make a double jump
-        if fake_maxima[ cur_point[0], cur_point[1] ] = 1:
+        if fake_maxima[ cur_point[0], cur_point[1] ] == 1:
             grad_df_around[1,1] = -9999
             # Find the second largest gradient, do a double jump
             max_grad_loc = np.where( grad_df_around == np.max(grad_df_around) )
@@ -248,11 +242,11 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         
         cur_point = [ int(new_cur_i), int(new_cur_j) ]
     ##wh
-        
+    
     # Set the starting row to be that of the maximum.
     level_start = [ maximum_location[0], maximum_location[1] ]
-    cur_point[ level_start[0], level_start[1] ]
-        
+    cur_point = [ level_start[0], level_start[1] ]
+    
     # Now start at the maximum and search the grid. First go upwards in 'i'
     increase_i_done = False
     while increase_i_done == False:
@@ -264,26 +258,23 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
             
             # Compute the DF at the current point
             # Check if the DF at this point has already been computed
-            if computed_df[ cur_point[0] , cur_point[1] ] == 1:
-                check_df_around[ i, j ] = dfp[ act_i, act_j ]
-            else:
+            if computed_df[ cur_point[0] , cur_point[1] ] == 0:
                 # If it hasn't then run the orbit
-                check_around_o = orbit.Orbit(vxvv=[R*apu.kpc, 
-                                      vR_range[act_i]*apu.km/apu.s, 
-                                      vT_range[act_j]*apu.km/apu.s, 
-                                      z*apu.kpc,
-                                      0*apu.km/apu.s,
-                                      phi*apu.radian])
+                cur_o = orbit.Orbit(vxvv=[  R*apu.kpc, 
+                                            vR_range[ cur_point[0] ]*apu.km/apu.s, 
+                                            vT_range[ cur_point[1] ]*apu.km/apu.s, 
+                                            z*apu.kpc,
+                                            0*apu.km/apu.s,
+                                            phi*apu.radian])
                 
                 # Should the unperturbed DF be computed? 
-                if _compute_unperturbed:
-                    df0[ act_i , act_j ] = df_evaluator(check_around_o)                      
-                
-                # Now integrate
-                check_around_o.integrate(times,pot)
-                dfp[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
-                check_df_around[i,j] = dfp[ act_i , act_j ]
-                computed_df[ act_i , act_j ] = 1.
+                if compute_unperturbed:
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
+                else:
+                    cur_o.integrate(times,pot)
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                ##ie
+                computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
             
             # Now compute the gradient between this point and one point back in 'j'
@@ -291,18 +282,18 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
                 cur_grad = 0
                 first_of_i = False
             else:
-                cur_grad = dfp[ cur_point[0], cur_point[1] ] - dfp[ cur_point[0], cur_point[1]-1 ]
+                cur_grad = df[ cur_point[0], cur_point[1] ] - df[ cur_point[0], cur_point[1]-1 ]
             ##ie
             
             # If we are decreasing in value of the DF and we are below the
             # threshold then move on
             if threshold_norm == True:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ] / dfp_max
+                cur_df_norm = df[ cur_point[0], cur_point[1] ] / df_max
             else:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ]
+                cur_df_norm = df[ cur_point[0], cur_point[1] ]
             ##ie
             
-            if cur_grad < 0 and cur_dfp_norm < threshold:
+            if cur_grad < 0 and cur_df_norm < threshold:
                 increase_j_done = True
             ##fi
             
@@ -319,40 +310,37 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
             
             # Compute the DF at the current point
             # Check if the DF at this point has already been computed
-            if computed_df[ cur_point[0] , cur_point[1] ] == 1:
-                check_df_around[ i, j ] = dfp[ act_i, act_j ]
-            else:
+            if computed_df[ cur_point[0] , cur_point[1] ] == 0:
                 # If it hasn't then run the orbit
-                check_around_o = orbit.Orbit(vxvv=[R*apu.kpc, 
-                                      vR_range[act_i]*apu.km/apu.s, 
-                                      vT_range[act_j]*apu.km/apu.s, 
-                                      z*apu.kpc,
-                                      0*apu.km/apu.s,
-                                      phi*apu.radian])
+                cur_o = orbit.Orbit(vxvv=[  R*apu.kpc, 
+                                            vR_range[ cur_point[0] ]*apu.km/apu.s, 
+                                            vT_range[ cur_point[1] ]*apu.km/apu.s, 
+                                            z*apu.kpc,
+                                            0*apu.km/apu.s,
+                                            phi*apu.radian])
                 
                 # Should the unperturbed DF be computed? 
-                if _compute_unperturbed:
-                    df0[ act_i , act_j ] = df_evaluator(check_around_o)                      
-                
-                # Now integrate
-                check_around_o.integrate(times,pot)
-                dfp[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
-                check_df_around[i,j] = dfp[ act_i , act_j ]
-                computed_df[ act_i , act_j ] = 1.
+                if compute_unperturbed:
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
+                else:
+                    cur_o.integrate(times,pot)
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                ##ie
+                computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
-        
+            
             # Now compute the gradient between this point and one point back in 'j'
-            cur_grad = dfp[ cur_point[0], cur_point[1] ] - dfp[ cur_point[0], cur_point[1]+1 ]
+            cur_grad = df[ cur_point[0], cur_point[1] ] - df[ cur_point[0], cur_point[1]+1 ]
             
             # If we are decreasing in value of the DF and we are below the
             # threshold then move on
             if threshold_norm == True:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ] / dfp_max
+                cur_df_norm = df[ cur_point[0], cur_point[1] ] / df_max
             else:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ]
+                cur_df_norm = df[ cur_point[0], cur_point[1] ]
             ##ie
             
-            if cur_grad < 0 and cur_dfp_norm < threshold:
+            if cur_grad < 0 and cur_df_norm < threshold:
                 decrease_j_done = True
             ##fi
             
@@ -363,19 +351,19 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         # Did this row contribute any values of the perturbed DF above the 
         # threshold?
         if threshold_norm == True:
-            cur_i_dfp_norm = dfp[ level_start[0], : ] / dfp_max
+            cur_i_df_norm = df[ level_start[0], : ] / df_max
         else:
-            cur_i_dfp_norm = dfp[ level_start[0], : ]
+            cur_i_df_norm = df[ level_start[0], : ]
         ##ie
         
         # Check if this row contributed anything 
-        if len( np.where( cur_i_dfp_norm > threshold) ) == 0:
-            increase_i_done == True
+        if len( np.where( cur_i_df_norm > threshold)[0] ) == 0:
+            increase_i_done = True
         ##fi
         
         # Now update to a new value of i. Find the maximum value the DF in this 
         # row and go upwards there
-        where_i_max = np.argmax( dfp[ level_start[0], : ] )
+        where_i_max = np.argmax( df[ level_start[0], : ] )
         level_start = [ level_start[0]+1, where_i_max ]
         cur_point = [ level_start[0], level_start[1] ]
         
@@ -383,7 +371,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
     
     # Now go down in 'i'. Set the level to be 1 below the max
     level_start = [ maximum_location[0]-1, maximum_location[1] ]
-    cur_point[ level_start[0], level_start[1] ]
+    cur_point = [ level_start[0], level_start[1] ]
     
     decrease_i_done = False
     while decrease_i_done == False:
@@ -395,26 +383,23 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
             
             # Compute the DF at the current point
             # Check if the DF at this point has already been computed
-            if computed_df[ cur_point[0] , cur_point[1] ] == 1:
-                check_df_around[ i, j ] = dfp[ act_i, act_j ]
-            else:
+            if computed_df[ cur_point[0] , cur_point[1] ] == 0:
                 # If it hasn't then run the orbit
-                check_around_o = orbit.Orbit(vxvv=[R*apu.kpc, 
-                                      vR_range[act_i]*apu.km/apu.s, 
-                                      vT_range[act_j]*apu.km/apu.s, 
-                                      z*apu.kpc,
-                                      0*apu.km/apu.s,
-                                      phi*apu.radian])
+                cur_o = orbit.Orbit(vxvv=[  R*apu.kpc, 
+                                            vR_range[ cur_point[0] ]*apu.km/apu.s, 
+                                            vT_range[ cur_point[1] ]*apu.km/apu.s, 
+                                            z*apu.kpc,
+                                            0*apu.km/apu.s,
+                                            phi*apu.radian])
                 
                 # Should the unperturbed DF be computed? 
-                if _compute_unperturbed:
-                    df0[ act_i , act_j ] = df_evaluator(check_around_o)                      
-                
-                # Now integrate
-                check_around_o.integrate(times,pot)
-                dfp[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
-                check_df_around[i,j] = dfp[ act_i , act_j ]
-                computed_df[ act_i , act_j ] = 1.
+                if compute_unperturbed:
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
+                else:                  
+                    cur_o.integrate(times,pot)
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                ##ie
+                computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
             
             # Now compute the gradient between this point and one point back in 'j'
@@ -422,18 +407,18 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
                 cur_grad = 0
                 first_of_i = False
             else:
-                cur_grad = dfp[ cur_point[0], cur_point[1] ] - dfp[ cur_point[0], cur_point[1]-1 ]
+                cur_grad = df[ cur_point[0], cur_point[1] ] - df[ cur_point[0], cur_point[1]-1 ]
             ##ie
             
             # If we are decreasing in value of the DF and we are below the
             # threshold then move on
             if threshold_norm == True:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ] / dfp_max
+                cur_df_norm = df[ cur_point[0], cur_point[1] ] / df_max
             else:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ]
+                cur_df_norm = df[ cur_point[0], cur_point[1] ]
             ##ie
             
-            if cur_grad < 0 and cur_dfp_norm < threshold:
+            if cur_grad < 0 and cur_df_norm < threshold:
                 increase_j_done = True
             ##fi
             
@@ -450,40 +435,37 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
             
             # Compute the DF at the current point
             # Check if the DF at this point has already been computed
-            if computed_df[ cur_point[0] , cur_point[1] ] == 1:
-                check_df_around[ i, j ] = dfp[ act_i, act_j ]
-            else:
+            if computed_df[ cur_point[0] , cur_point[1] ] == 0:
                 # If it hasn't then run the orbit
-                check_around_o = orbit.Orbit(vxvv=[R*apu.kpc, 
-                                      vR_range[act_i]*apu.km/apu.s, 
-                                      vT_range[act_j]*apu.km/apu.s, 
-                                      z*apu.kpc,
-                                      0*apu.km/apu.s,
-                                      phi*apu.radian])
+                cur_o = orbit.Orbit(vxvv=[  R*apu.kpc, 
+                                            vR_range[ cur_point[0] ]*apu.km/apu.s, 
+                                            vT_range[ cur_point[1] ]*apu.km/apu.s, 
+                                            z*apu.kpc,
+                                            0*apu.km/apu.s,
+                                            phi*apu.radian])
                 
                 # Should the unperturbed DF be computed? 
-                if _compute_unperturbed:
-                    df0[ act_i , act_j ] = df_evaluator(check_around_o)                      
-                
-                # Now integrate
-                check_around_o.integrate(times,pot)
-                dfp[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
-                check_df_around[i,j] = dfp[ act_i , act_j ]
-                computed_df[ act_i , act_j ] = 1.
+                if compute_unperturbed:
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
+                else:
+                    cur_o.integrate(times,pot)
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                ##ie
+                computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
         
             # Now compute the gradient between this point and one point back in 'j'
-            cur_grad = dfp[ cur_point[0], cur_point[1] ] - dfp[ cur_point[0], cur_point[1]+1 ]
+            cur_grad = df[ cur_point[0], cur_point[1] ] - df[ cur_point[0], cur_point[1]+1 ]
             
             # If we are decreasing in value of the DF and we are below the
             # threshold then move on
             if threshold_norm == True:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ] / dfp_max
+                cur_df_norm = df[ cur_point[0], cur_point[1] ] / df_max
             else:
-                cur_dfp_norm = dfp[ cur_point[0], cur_point[1] ]
+                cur_df_norm = df[ cur_point[0], cur_point[1] ]
             ##ie
             
-            if cur_grad < 0 and cur_dfp_norm < threshold:
+            if cur_grad < 0 and cur_df_norm < threshold:
                 decrease_j_done = True
             ##fi
             
@@ -494,30 +476,55 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         # Did this row contribute any values of the perturbed DF above the 
         # threshold?
         if threshold_norm == True:
-            cur_i_dfp_norm = dfp[ level_start[0], : ] / dfp_max
+            cur_i_df_norm = df[ level_start[0], : ] / df_max
         else:
-            cur_i_dfp_norm = dfp[ level_start[0], : ]
+            cur_i_df_norm = df[ level_start[0], : ]
         ##ie
         
         # Check if this row contributed anything 
-        if len( np.where( cur_i_dfp_norm > threshold) ) == 0:
-            decrease_i_done == True
+        if len( np.where( cur_i_df_norm > threshold)[0] ) == 0:
+            decrease_i_done = True
         ##fi
         
         # Now update to a new value of i. Find the maximum value the DF in this 
         # row and go upwards there
-        where_i_max = np.argmax( dfp[ level_start[0], : ] )
+        where_i_max = np.argmax( df[ level_start[0], : ] )
         level_start = [ level_start[0]-1, where_i_max ]
         cur_point = [ level_start[0], level_start[1] ]
         
     ##wh
     
+    print('All done')
+    
     # All done!
-    if _compute_unperturbed == True:
-        return dfp, df0
-    else:
-        return dfp
-        
+    return df    
 #def
 
 # ----------------------------------------------------------------------------
+
+def calculate_df_vmoments(df, vR_range, vT_range, dvR, dvT):
+    '''
+    calculate_df_moment:
+    
+    Calculate the velocity moments of a DF.
+    
+    Args:
+        df (array) - The DF value array which goes [vT,vR]
+        v_range (array) - The velocity array
+        dv (float) - The 
+    
+    Returns:
+        velocity_moments (array) [dens, vR average, vR std deviation, vT average, vT std deviation]
+    '''
+    
+    dens = np.sum(df) * dvR * dvT
+    vR_avg = (1/dens) * np.sum( np.sum(df, axis=1) * vR_range ) * dvR * dvT
+    vT_avg = (1/dens) * np.sum( np.sum(df, axis=0) * vT_range ) * dvR * dvT
+    vR_std = np.sqrt((1/dens) * np.sum( np.sum(df, axis=1) * np.square( vR_avg - vR_range ) ) * dvR * dvT)
+    vT_std = np.sqrt((1/dens) * np.sum( np.sum(df, axis=0) * np.square( vT_avg - vT_range ) ) * dvR * dvT)
+
+    return [dens,vR_avg,vT_avg,vR_std,vT_std]
+    
+#def
+    
+
