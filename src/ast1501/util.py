@@ -1,44 +1,22 @@
 # ----------------------------------------------------------------------------
 #
-# TITLE -
+# TITLE - util.py
 # AUTHOR - James Lane
-# PROJECT -
+# PROJECT - AST1501
 # CONTENTS:
-#
+# 1 - stround
+# 
 # ----------------------------------------------------------------------------
 
 ### Docstrings and metadata:
 '''
-
+Utility functions for the AST 1501 project.
 '''
 __author__ = "James Lane"
 
 ### Imports
 
-## Basic
-import numpy as np
-import sys, os, pdb
-# import glob
-# import subprocess
-
-## Plotting
-# from matplotlib import pyplot as plt
-# from matplotlib.backends.backend_pdf import PdfPages
-# from matplotlib import colors
-# from matplotlib import cm
-# import aplpy
-
-## Astropy
-# from astropy.io import fits
-# from astropy.coordinates import SkyCoord
-# from astropy import table
-# from astropy import units as u
-# from astropy import wcs
-
-## galpy
-# from galpy import orbit
-# from galpy import potential
-# from galpy.util import bovy_coords as gpcoords
+## None
 
 # ----------------------------------------------------------------------------
 
