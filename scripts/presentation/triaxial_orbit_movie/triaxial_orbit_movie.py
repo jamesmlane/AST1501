@@ -44,7 +44,7 @@ import ast1501.potential
 # Keywords
 
 # Simulation length 
-t0 = 5 # Gyr
+t0 = 7 # Gyr
 
 # The times at which the triaxial halo will begin to grow and end growing
 # with respect to t0
@@ -75,7 +75,7 @@ r = np.array([1,2,4])
 vc = potential.vcirc(mwpot, r, 0)
 
 # Times
-times = np.arange(0,t0,0.0025) * apu.Gyr
+times = np.arange(0,t0,0.01) * apu.Gyr
 
 # Orbit declaration
 o1 = orbit.Orbit( vxvv=[r[0],0.,vc[0],0.,0.,0.] )
@@ -104,13 +104,13 @@ ax.set_xlim(xlim[0],xlim[1])
 ax.set_ylim(ylim[0],ylim[1])
 ax.set_ylabel('Y  [8 kpc]', fontsize=14, labelpad=10.0)
 ax.set_xlabel('X  [8 kpc]', fontsize=14, labelpad=10.0)
-ax.tick_params(right='on', top='on', labelbottom='off', direction='in')
+ax.tick_params(right='on', top='on', direction='in')
 
 line1_color = 'DodgerBlue'
 line2_color = 'Red'
 line3_color = 'Purple'
-line_width = 2
-point_size = 25
+line_width = 1.5
+point_size = 30
 pt_ec = 'None'
 
 # Setup lines
