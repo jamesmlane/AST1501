@@ -5,6 +5,10 @@
 # PROJECT - AST1501
 # CONTENTS: 
 # 1. evaluate_df_adaptive_vrvt
+# 2. hist_df
+# 3. calculate_df_vmoments
+# 4. generate_triaxial_df_map_polar
+# 5. generate_triaxial_df_map_rect
 #
 # ----------------------------------------------------------------------------
 
@@ -242,7 +246,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         
         cur_point = [ int(new_cur_i), int(new_cur_j) ]
     ##wh
-    
+
     # Set the starting row to be that of the maximum.
     level_start = [ maximum_location[0], maximum_location[1] ]
     cur_point = [ level_start[0], level_start[1] ]
@@ -503,8 +507,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
 # ----------------------------------------------------------------------------
 
 def calculate_df_vmoments(df, vR_range, vT_range, dvR, dvT):
-    '''
-    calculate_df_moment:
+    '''calculate_df_vmoment:
     
     Calculate the velocity moments of a DF.
     
@@ -527,4 +530,207 @@ def calculate_df_vmoments(df, vR_range, vT_range, dvR, dvT):
     
 #def
     
+# ----------------------------------------------------------------------------
 
+def gen_vRvT_1D(dvT, dvR, vR_low, vR_hi, vT_low, vT_hi, verbose=0):
+    '''gen_vRvT_1D
+    '''
+    
+    # Generate the velocity range
+    vR_range = np.arange( vR_low, vR_hi, dvR )
+    vT_range = np.arange( vT_low, vT_hi, dvT )
+
+    # Generate the array of distribution function values
+    dfp = np.zeros((len(vR_range),len(vT_range)))
+    df0 = np.zeros((len(vR_range),len(vT_range)))
+
+    # Output information
+    if verbose > 0:
+        print( str(len(vR_range)*len(vT_range))+' independent velocities' )
+        print( str(len(vR_range))+' Between vR=['+str(round(np.amin(vR_range)))+','+str(round(np.amax(vR_range)))+']')
+        print( str(len(vR_range))+' Between vR=['+str(round(np.amin(vT_range)))+','+str(round(np.amax(vT_range)))+']')
+        if verbose > 1:
+            print('\n')
+            print(vR_range)
+            print(vT_range)
+            print('\n')
+        ##fi
+    ##fi
+    
+    return df0, dfp, vR_range, vT_range
+    
+#def
+
+# ----------------------------------------------------------------------------
+
+def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False):
+    '''hist_df
+    '''
+    
+    ## Make the original distribution function
+    img_arr = np.rot90( df/np.max(df) )
+    if log:
+        img = ax.imshow(np.log10(img_arr), interpolation='nearest',
+                            extent=[vR_low, vR_hi, vT_low, vT_hi],
+                            cmap='viridis', vmax=0, vmin=-3)
+        cbar = plt.colorbar(img, ax=ax)
+        cbar.set_label(r'$\log [f/f_{max}]$', fontsize=16)
+    else:
+        img = ax.imshow(img_arr, interpolation='nearest',
+                            extent=[vR_low, vR_hi, vT_low, vT_hi],
+                            cmap='viridis', vmax=1, vmin=0)
+        cbar = plt.colorbar(img, ax=ax)
+        cbar.set_label(r'$f/f_{max}$', fontsize=16)
+    ##ie
+
+    # Decorate
+    ax.set_xlabel(r'$V_{R}$ [km/s]', fontsize=14)
+    ax.set_ylabel(r'$V_{\phi}$ [km/s]', fontsize=14)
+
+    return fig, ax, cbar,
+#def
+
+# ----------------------------------------------------------------------------
+
+def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,
+                                    range_phi=[0,np.pi],
+                                    halo_b=1.0,
+                                    halo_c=1.0,
+                                    halo_phi=1.0,
+                                    mirror_x=True,
+                                    t_evolve=10.0,
+                                    tform=-9.0,
+                                    tsteady=8.0,
+                                    ):
+    '''generate_triaxial_df_map_polar:
+    
+    Make a map of triaxial DF values on a polar grid.
+
+    Args:
+        dr [float] - radial bin spacing
+        darc [float] - arclength bin spacing
+        range_r [2-array] - Range of R over which to evaluate (low,high)
+        velocity_parms [4-array] - parameters to set tangential and radial
+            velocity grid spacing (dv..) and width in units of DF sigmas 
+            (n_sigma..) (dvR,dvT,n_sigma_vR,n_sigma_vT)
+        range_phi [2-array] - Range of phi over which to evaluate (low,high)
+        halo_b [float] - Halo b/a [1.0]
+        halo_c [float] - Halo c/a [1.0]
+        halo_phi [float] - Halo position angle in X-Y plane [1.0]
+        mirror_x [bool] - Only compute the perturbed density for half the 
+            circle given its symmetry, to save time [True]
+        t_evolve [float] - Total integration time of the system in Gyr [10.0]
+        t_form [float] - Time at which to begin the smooth transformation in 
+            Gyr (should be negative) [-9.0]
+        t_steady [float] - Duration of the transformation phase in positive 
+            Gyr [8.0]
+        make_log [bool] - Output a text log? [True]
+        
+        
+    Outputs:
+        
+    '''
+    
+    # Make the potential and triaxial halo
+    mwpot = potential.MWPotential2014
+    trihalo = ast1501.potential.make_MWPotential2014_triaxialNFW(halo_b=halo_b, 
+        halo_phi=halo_phi, halo_c=halo_c)
+    tripot_grow = ast1501.potential.make_tripot_dsw(trihalo=trihalo, tform=tform, tsteady=tsteady)
+    potential.turn_physical_off(tripot_grow)    
+    
+    # Velocity dispersions in km/s
+    sigma_vR = 46/1.5
+    sigma_vT = 40/1.5
+    sigma_vZ = 28/1.5
+    
+    # Action angle coordinates and the DF
+    qdf_aA= actionAngleAdiabatic(pot=potential.MWPotential2014, c=True)
+    qdf = df.quasiisothermaldf( hr= 2*apu.kpc,
+                                sr= sigma_vR*(apu.km/apu.s),
+                                sz= sigma_vZ*(apu.km/apu.s),
+                                hsr= 9.8*(apu.kpc),
+                                hsz= 7.6*(apu.kpc),
+                                pot= potential.MWPotential2014, 
+                                aA= qdf_aA)
+                                
+    # Set velocity deltas and range. vT range will be set in the for loop
+    # so it can be offset by the local circular velocity.
+    dvT = velocity_parms[0]
+    dvR = velocity_parms[1]
+    vR_low = -velocity_parms[2]*sigma_vR
+    vR_hi = velocity_parms[2]*sigma_vR
+    
+    # Set radial grid. azimuthal grid will be set in the loop.
+    r_posns = np.arange( range_r[0], range_r[1], dr) + dr/2
+    
+    # Make a log?
+    if make_log:
+        logfile = open('./log.txt','w')
+    ##fi
+    
+    # Loop over all radii
+    for i in range( len( r_posns ) ):
+        
+        
+        arc_length = np.pi*r_posns[i]
+        n_bins = math.ceil(arc_length/darc)
+        dphi = (range_phi[1]-range_phi[0])/n_bins
+    
+        # Choose the phi positions. Goes from -pi/2 to +pi/2. Phi=0 is towards 
+        # the sun.
+        phi_posns = np.linspace(range_phi[0], range_phi[1], num=n_bins, 
+            endpoint=False) + dphi/2 - np.pi/2
+            
+        # Arrays to store velocity moments
+        vR_mean = np.zeros(len(phi_posns))
+        vR_std = np.zeros(len(phi_posns))
+        vT_mean = np.zeros(len(phi_posns))
+        vT_std = np.zeros(len(phi_posns))
+        
+        # Now loop over phi positions:
+        for j in range( len( phi_posns ) ):
+            
+            # Set the tangential velocity about the local circular velocity
+            vcirc_offset = potential.vcirc(mwpot,r_posns[i]*apu.kpc) * mwpot[0]._vo # in km/s
+            vT_low = -velocity_parms[3]*sigma_vT + vcirc_offset
+            vT_hi = velocity_parms[3]*sigma_vT + vcirc_offset
+            
+            # Make the velocity range, and distribution function arrays
+            _, dfp, vR_range, vT_range = ast1501.df.gen_vRvT_1D(dvT, dvR, 
+                                                                vR_low, vR_hi, 
+                                                                vT_low, vT_hi)
+
+            R_z_phi = [r_posns[i],0,phi_posns[j]]
+
+            # Now use the radius and phi position to evaluate the triaxial DF 
+            t1 = time.time()
+            
+            dfp = ast1501.df.evaluate_df_adaptive_vrvt(R_z_phi, times, tripot_grow, 
+                qdf, vR_range, vT_range, dfp, threshold=0.0001)
+                
+            # Calculate the moments
+            moments = ast1501.df.calculate_df_vmoments(dfp, vR_range, vT_range, 
+                dvR, dvT)
+            vR_mean[j], vT_mean[j], vR_std[j], vT_std[j] = moments[1:]
+            
+            t2 = time.time()
+            logfile.write( 'R='+str(round(r_posns[i],2))+' kpc, phi='+str(round(phi_posns[j],2))+' rad, t='+str(round(t2-t1))+' s\n' )
+
+            fig = plt.figure( figsize=(5,5) )
+            ax = fig.add_subplot(111)
+
+            # Plot
+            fig, ax, cbar = ast1501.df.hist_df(dfp, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=True)
+            ax.set_title('R='+str(round(r_posns[i],2))+' kpc, phi='+str(round(phi_posns[j],2))+' rad')
+            fig.savefig( 'data/R-'+str(round(r_posns[i],2))+'_phi-'+str(round(phi_posns[j],2))+'_dfp.pdf' )
+            
+            print( 'Done R: '+str(round(r_posns[i],2))+' phi: '+str(round(phi_posns[j],2)) )
+            
+        ###j
+#def
+
+
+
+# ----------------------------------------------------------------------------
+
+def generate_triaxial_df_map_rect():
