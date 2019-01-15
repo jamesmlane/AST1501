@@ -8,7 +8,7 @@
 
 ### Docstrings and metadata:
 '''
-Routines to make the fourier transform
+Routines for Fourier transformation
 '''
 __author__ = "James Lane"
 
@@ -46,30 +46,39 @@ def psd(arr,dx,pad=True,return_phase=True):
         n= 2*len(arr)+1
     else:
         n= len(arr)
+    ##ie
     
-    # Take the 1D FFT
-    arr_fft= np.fft.fftshift(np.fft.fft(arr,n=n))
+    # Take the 1D FFT. n controls whether padding will occur
+    arr_fft = np.fft.fftshift(np.fft.fft(arr,n=n))
     
     # Get the phase information
     if return_phase:
         phase = np.angle( arr_fft )
+    ##fi
     
     # Then calculate the periodogram estimate of the power spectrum
-    ret= np.abs(arr_fft)**2. + np.abs(arr_fft[::-1])**2.
+    ret = np.abs(arr_fft)**2. + np.abs(arr_fft[::-1])**2.
     
-    # Correct the 0 order term
+    pdb.set_trace()
+    
+    # Correct the 0 order term and account for the padding by multiplying the 
+    # power by 2
     if pad:
-        ret[len(arr)]*= 0.5
+        ret[int(len(arr))] *= 0.5
+        ret *= 2
     else:
-        ret[len(arr)/2]*= 0.5
+        ret[int(len(arr)/2)] *= 0.5
+    ##ie
     
     # Output
     if return_phase:
         return (np.fft.fftshift(np.fft.fftfreq(n,dx)),
-                ret/n**2.*2.,phase)
+                ret/n**2.,
+                phase)
     else:
         return (np.fft.fftshift(np.fft.fftfreq(n,dx)),
-                ret/n**2.*2.)
+                ret/n**2.)
+    ##ie
 
 def psd2d(image,pad=True):
     '''
