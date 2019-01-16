@@ -592,7 +592,7 @@ def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False):
 
 # ----------------------------------------------------------------------------
 
-def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,
+def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
                                     range_phi=[0,np.pi],
                                     halo_b=1.0,
                                     halo_c=1.0,
@@ -613,6 +613,7 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,
         velocity_parms [4-array] - parameters to set tangential and radial
             velocity grid spacing (dv..) and width in units of DF sigmas 
             (n_sigma..) (dvR,dvT,n_sigma_vR,n_sigma_vT)
+        fileout [string] - Output filename
         range_phi [2-array] - Range of phi over which to evaluate (low,high)
         halo_b [float] - Halo b/a [1.0]
         halo_c [float] - Halo c/a [1.0]
@@ -668,10 +669,12 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,
         logfile = open('./log.txt','w')
     ##fi
     
+    radius_out = np.empty(len(r_posns),dtype='object')
+    
     # Loop over all radii
     for i in range( len( r_posns ) ):
         
-        
+        # Decide on the phi spacing
         arc_length = np.pi*r_posns[i]
         n_bins = math.ceil(arc_length/darc)
         dphi = (range_phi[1]-range_phi[0])/n_bins
@@ -727,10 +730,114 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,
             print( 'Done R: '+str(round(r_posns[i],2))+' phi: '+str(round(phi_posns[j],2)) )
             
         ###j
+        radius_out[i] = np.array([r_posns[i],phi_posns,vR_mean,vT_mean,vR_std,vT_std],dtype='object')
 #def
 
+np.save(fileout,radius_out)
 
+logfile.close()
 
 # ----------------------------------------------------------------------------
 
 def generate_triaxial_df_map_rect():
+    '''generate_triaxial_df_map_rect:
+    
+    Args:
+    
+    Outputs:
+    '''
+
+# ----------------------------------------------------------------------------
+
+def generate_grid_radial(   r_range,
+                            phi_range,
+                            delta_r,
+                            delta_phi,
+                            delta_phi_in_arc=True):
+    '''generate_grid_radial:
+    
+    Generate a radial grid pursuant to a radial range, azimuth range, delta 
+    in r and azimuth.
+    
+    Args:
+        r_range (float 2-array) - 2 element array of the r range
+        phi_range (float 2-array) - 2 element array of the phi range
+        delta_r (float) - spacing in the r direction
+        delta_phi (float) - spacing in the azimuth direction
+        delta_phi_in_arc [bool] - delta_phi is given as a delta in arclength 
+            instead of angle [True]
+    
+    Returns:
+        grid_rpoints (float array) - 1-D array of x grid points
+        grid_phipoints (float array) - 1-D array of y grid points
+    '''
+    
+    # Make the radial points
+    grid_rpoints_core = np.arange( r_range[0], r_range[1], delta_r )
+    
+    # Make the empty arrays to hold the data
+    grid_rpoints = np.array([])
+    grid_phipoints = np.array([])
+    
+    for i in range( len( grid_rpoints_core ) ):
+        
+        # Determine the azimuth points at this radii. Either fixed angular
+        # interval or fixed arc interval.
+        if delta_phi_in_arc:
+            # Calculate the arc length limits at this radius
+            arc_min = phi_range[0] * grid_rpoints_core[i]
+            arc_max = phi_range[1] * grid_rpoints_core[i]
+            grid_arcpoints_new = np.arange( arc_min, arc_max, delta_phi )
+            
+            # Center the points to account for an uneven gridding, then center 
+            # the points in the spacing window and convert back to angle.
+            grid_arcpoints_new -= ( ( arc_max - arc_min ) % delta_phi )
+            grid_arcpoints_new += ( delta_phi / 2 )
+            grid_phipoints_new = grid_arcpoints_new / grid_rpoints_core[i]
+            
+            # Append to the total array
+            grid_phipoints = np.append( grid_phipoints, new_grid_phipoints )
+            
+        else:
+            # Just do a straight range in azimuth.
+            grid_phipoints = np.append( grid_phipoints, 
+                np.arrange( phi_range[0], phi_range[1], delta_phi ) )
+        ##ie
+    
+    return grid_rpoints, grid_phipoints
+        
+    ###i
+#def
+    
+# ----------------------------------------------------------------------------
+
+def generate_grid_rect():
+    '''generate_grid_rect:
+    
+    Generate a rectangular grid pursuant to an x range, a y range and a delta 
+    in r and azimuth.
+    
+    Args:
+        x_range (float 2-array) - 2 element array of the X range
+        y_range (float 2-array) - 2 element array of the Y range
+        delta_x (float) - spacing in the X direction
+        delta_y (float) - spacing in the Y direction
+        include_endpoints [bool] - Include the end points in the array [False]
+    
+    Returns:
+        grid_xpoints (float array) - 1-D array of x grid points
+        grid_ypoints (float array) - 1-D array of y grid points
+    '''
+    
+    # Make the x and y range
+    grid_xpoints_core = np.arange(x_range[0], x_range[1], delta_x)
+    grid_ypoints_core = np.arange(y_range[0], y_range[1], delta_y)
+    
+    # Make the x and y grid
+    grid_xpoints, grid_ypoints = np.meshgrid(   grid_xpoints_core,
+                                                grid_ypoints_core,
+                                                indexing='ij')
+                                                
+    return grid_xpoints, grid_ypoints
+#def
+    
