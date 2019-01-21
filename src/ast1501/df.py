@@ -491,7 +491,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
         
     ##wh
     
-    print('All done')
+    # print('All done')
     
     # All done!
     return df    
