@@ -22,30 +22,23 @@ __author__ = "James Lane"
 
 ## Basic
 import numpy as np
-import sys, os, pdb, copy
-# import glob
-# import subprocess
+import sys, os, pdb, copy, time
+from itertools import repeat
+import multiprocessing
 
 ## Plotting
 from matplotlib import pyplot as plt
-# from matplotlib.backends.backend_pdf import Pdfages
-# from matplotlib import colors
-# from matplotlib import cm
-# import aplpy
 
 ## Astropy
-# from astropy.io import fits
-# from astropy.coordinates import SkyCoord
-# from astropy import table
 from astropy import units as apu
-# from astropy import wcs
 
 ## galpy
 from galpy import orbit
 from galpy import potential
+from galpy import df
+from galpy import actionAngle
 from galpy.util import bovy_coords as gpcoords
 from galpy.util import bovy_conversion as gpconv
-# from galpy.util import bovy_plot as gpplot
 
 # ----------------------------------------------------------------------------
 
@@ -506,18 +499,20 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
 
 # ----------------------------------------------------------------------------
 
-def calculate_df_vmoments(df, vR_range, vT_range, dvR, dvT):
-    '''calculate_df_vmoment:
+def calculate_df_vmoments_vRvT(df, vR_range, vT_range, dvR, dvT):
+    '''calculate_df_vmoments_vRvT:
     
-    Calculate the velocity moments of a DF.
+    Calculate the velocity moments of a DF that spans vR and vT.
     
     Args:
         df (array) - The DF value array which goes [vT,vR]
-        v_range (array) - The velocity array
-        dv (float) - The 
+        vR_range (array) - The velocity array in vR
+        vT_range (array) - The velocity array in vT
+        dvR (float) - The spacing in vR
+        dvT (float) - The spacing in vT
     
     Returns:
-        velocity_moments (array) [dens, vR average, vR std deviation, vT average, vT std deviation]
+        velocity_moments (array) [dens, vR_avg, vR_stds, vT_avg, vT_std]
     '''
     
     dens = np.sum(df) * dvR * dvT
@@ -533,7 +528,20 @@ def calculate_df_vmoments(df, vR_range, vT_range, dvR, dvT):
 # ----------------------------------------------------------------------------
 
 def gen_vRvT_1D(dvT, dvR, vR_low, vR_hi, vT_low, vT_hi, verbose=0):
-    '''gen_vRvT_1D
+    '''gen_vRvT_1D:
+    
+    Generate 1D arrays of both tangential and radial velocities given deltas
+    and ranges.
+    
+    Args:
+        dvT (float) - delta in vT
+        dvR (float) - delta in vR
+        vR_low (float) - Low end of vR range in km/s
+        vR_hi (float) - High end of vR range in km/s
+        vT_low (float) - Low end of vT range in km/s
+        vT_hi (float) - High end of vT range in km/s
+        verbose (int) - integer either 0 or >0 to specify whether velocity range 
+            is printed to screen [0]
     '''
     
     # Generate the velocity range
@@ -563,8 +571,21 @@ def gen_vRvT_1D(dvT, dvR, vR_low, vR_hi, vT_low, vT_hi, verbose=0):
 
 # ----------------------------------------------------------------------------
 
-def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False):
-    '''hist_df
+def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, 
+            log=False):
+    '''hist_df:
+    
+    Plot a 2D histogram of a distribution function
+    
+    Args:
+        df (float array) - The distribution function array
+        vR_low (float) - Low end of vR range in km/s
+        vR_hi (float) - High end of vR range in km/s
+        vT_low (float) - Low end of vT range in km/s
+        vT_hi (float) - High end of vT range in km/s
+        fig (matplotlib Figure) - figure object to plot on
+        ax (matplotlib Axis) - axis object to plot on
+        log (bool) - Plot the DF values in log instead of linear [False]
     '''
     
     ## Make the original distribution function
@@ -592,6 +613,285 @@ def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False):
 
 # ----------------------------------------------------------------------------
 
+def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
+                            sigma_vR=30.0,
+                            sigma_vT=30.0,
+                            evaluator_threshold=0.0001,
+                            plot_df=True,
+                            coords_in_xy=False,
+                            logfile=None,
+                            verbose=0
+                            ):
+    '''evaluate_df_polar:
+    
+    Given a polar position, evaluate the distribution function across a grid of 
+    velocities and return the moments of the distribution function. Takes in 
+    a positional argument and an array of velocities
+    
+    Args:
+        r (float) - Galactocentric cylindrical radius in kpc
+        phi (float) - azimuth in rad (0 at Sun-GC line, increases CCW from GNP)
+        pot (galpy Potential object) - Time dependent potential in which to 
+            evaluate DF
+        df (galpy df object) - distribution function object
+        velocity_parms (4-array) - parameters to set tangential/radial
+            velocity grid spacing (dv..), and width in units of DF sigmas 
+            (n_sigma..), looks like: (dvR,dvT,n_sigma_vR,n_sigma_vT)
+        times (float array) - Array of negative times from 0 to t_evolve. Must 
+            be compatible with the evolution timescale for the potential.
+            
+        sigma_vR (float) - The radial velocity dispersion in km/s. Used to set 
+            the range for velocity exploration [30.0]
+        sigma_vT (float) - The tangential velocity dispersion in km/s. Used to 
+            set the range for velocity exploration [30.0]
+        evaluator_threshold (float) - The threshold at which the DF evaluator 
+            should stop, relative to the peak value of the DF [0.0001]
+        plot_df (bool) - Plot the distribution function [True]
+        coords_in_xy (bool) - if True r and phi are given as galactocentric x 
+            and y (in kpc) instead of polar coordinates. Note X is positive 
+            from GC->Sun and Y is positive towards galactic rotation [False]
+        logfile (writeable object) - Open text file where timing information 
+            can be recorded. None means no log will be written [None]
+        verbose (int) - Verbosity level [0]
+                
+    Returns:
+        output_array (float array) - array of [ r, phi, x, y, vr_mean, vt_mean, 
+            vr_std, vt_std]
+    
+    '''
+    
+    # Set the correct coordinates
+    if coords_in_xy:
+        x = copy.copy(r)
+        y = copy.copy(phi)
+        r = (x**2 + y**2)**0.5
+        phi = np.arctan2(y,x)
+    else:
+        x = np.cos( phi ) * r
+        y = np.sin( phi ) * r
+    ##ie        
+    
+    # Set velocity deltas and radial range.
+    dvT = velocity_parms[0]
+    dvR = velocity_parms[1]
+    vR_low = -velocity_parms[2]*sigma_vR
+    vR_hi = velocity_parms[2]*sigma_vR
+    
+    # Determine the tangential velocity at the local radius. Currently forcing 
+    # to use MWPotential2014. Use it to set the tangential velocity range.
+    mwpot = potential.MWPotential2014
+    vcirc_offset = potential.vcirc(mwpot, r*apu.kpc) * mwpot[0]._vo # in km/s
+    vT_low = -velocity_parms[3]*sigma_vT + vcirc_offset
+    vT_hi = velocity_parms[3]*sigma_vT + vcirc_offset
+    
+    # Make the velocity range, and distribution function arrays
+    _, dfp, vR_range, vT_range = gen_vRvT_1D(dvT, dvR, 
+                                            vR_low, vR_hi, 
+                                            vT_low, vT_hi)
+    
+    # Make the position array
+    R_z_phi = [r,0,phi]
+    
+    # If we're logging take the time
+    if logfile != None:
+        t1 = time.time()
+    ##fi
+    
+    # Calculate the distribution function using the adaptive evaluator.
+    dfp = evaluate_df_adaptive_vrvt(R_z_phi, times, pot, df, vR_range, 
+        vT_range, dfp, threshold=evaluator_threshold)
+        
+    # Calculate the moments of the DF
+    moments = calculate_df_vmoments_vRvT(dfp, vR_range, vT_range, dvR, dvT)
+    dens, vR_mean, vT_mean, vR_std, vT_std = moments
+    
+    # If we're logging take the time and output the timing information.
+    if logfile != None:
+        t2 = time.time()
+        logfile.write(  'R='+str(round(r,2))+\
+                        ' kpc, phi='+str(round(phi,2))+\
+                        ' rad, t='+str(round(t2-t1))+' s\n' )
+    ##fi
+    
+    # Plot the distribution function
+    if plot_df:
+        # Make a figure
+        fig = plt.figure( figsize=(5,5) )
+        ax = fig.add_subplot(111)
+        # Plot
+        fig, ax, _ = hist_df(dfp, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=True)
+        ax.set_title('R='+str(round(r,2))+' kpc, phi='+str(round(phi,2))+' rad')
+        fig.savefig( './R-'+str(round(r,2))+'_phi-'+str(round(phi,2))+'_dfp.pdf' )
+    ##fi
+    
+    if verbose > 0:
+        print( 'Done R: '+str(round(r,2))+' phi: '+str(round(phi,2)) )
+    ##fi
+    
+    output_array = np.array([r,phi,x,y,vR_mean,vR_std,vT_mean,vT_std])
+    
+    return output_array
+#def
+
+# ----------------------------------------------------------------------------
+
+def evaluate_df_polar_serial(r,phi,pot,df,velocity_parms,times,
+                                sigma_vR=30.0,
+                                sigma_vT=30.0,
+                                evaluator_threshold=0.0001,
+                                plot_df=True,
+                                coords_in_xy=False,
+                                logfile=None,
+                                verbose=0):
+    '''evaluate_df_polar_serial:
+    
+    Calculate the velocity moments of a DF pertaining to a time-varying 
+    potential in serial. Function is a wrapper of evaluate_df_polar
+    
+    Args:
+        r (float) - Galactocentric cylindrical radius in kpc
+        phi (float) - azimuth in rad (0 at Sun-GC line, increases CCW from GNP)
+        pot (galpy Potential object) - Time dependent potential in which to 
+            evaluate DF
+        df (galpy df object) - distribution function object
+        velocity_parms (4-array) - parameters to set tangential/radial
+            velocity grid spacing (dv..), and width in units of DF sigmas 
+            (n_sigma..), looks like: (dvR,dvT,n_sigma_vR,n_sigma_vT)
+        times (float array) - Array of negative times from 0 to t_evolve. Must 
+            be compatible with the evolution timescale for the potential.
+        
+        All other parameters see documentation of evaluate_df_polar
+    
+    Returns:
+        results (object array) - array of results from each evaluation of 
+            evaluate_df_polar, which each have the form:
+            [ r, phi, x, y, vr_mean, vt_mean, vr_std, vt_std]
+    '''
+    
+    n_calls = len(r)
+    
+    output = np.array([])
+    
+    for i in range(n_calls):
+    
+        results = evaluate_df_polar(r[i],phi[i],pot,df,velocity_parms,times,
+                    sigma_vR=sigma_vR,sigma_vT=sigma_vT,
+                    evaluator_threshold=evaluator_threshold,plot_df=plot_df,
+                    coords_in_xy=coords_in_xy,logfile=logfile,verbose=verbose)
+                    
+        output = np.append(output,results)
+            
+    ###i
+    
+    return output.reshape(n_calls,8)
+
+# ----------------------------------------------------------------------------
+
+def evaluate_df_polar_parallel(r,phi,halo_parms,velocity_parms,ncores,
+                                sigma_vR=30.0,
+                                sigma_vT=30.0,
+                                evaluator_threshold=0.0001,
+                                plot_df=True,
+                                coords_in_xy=False,
+                                logfile=None,
+                                verbose=0):
+    '''calculate_df_polar_parallel:
+    
+    Calculate the velocity moments of a DF pertaining to a time-varying 
+    potential in parallel. Function is a wrapper of evaluate_df_polar
+    
+    Args:
+        r (float) - Galactocentric cylindrical radius in kpc
+        phi (float) - azimuth in rad (0 at Sun-GC line, increases CCW from GNP)
+        pot (galpy Potential object) - Time dependent potential in which to 
+            evaluate DF
+        df (galpy df object) - distribution function object
+        velocity_parms (4-array) - parameters to set tangential/radial
+            velocity grid spacing (dv..), and width in units of DF sigmas 
+            (n_sigma..), looks like: (dvR,dvT,n_sigma_vR,n_sigma_vT)
+        times (float array) - Array of negative times from 0 to t_evolve. Must 
+            be compatible with the evolution timescale for the potential.
+        ncores (int) - Number of cores to use in parallel.
+        
+        All other parameters see documentation of evaluate_df_polar
+    
+    Returns:
+        results (object array) - array of results from each evaluation of 
+            evaluate_df_polar, which each have the form:
+            [ r, phi, x, y, vr_mean, vt_mean, vr_std, vt_std]
+    '''
+    
+    # Number of total iterations of the evaluate_df_polar function
+    n_calls = len(r)
+    
+    # First we need to put the input arguments into the correct form. Every 
+    # keywrod to evaluate_df_polar must be specified. If it is a single 
+    # value keyword then use repeat() to make it the same size
+    args = zip( r, phi, repeat(halo_parms), repeat(velocity_parms), 
+                repeat(sigma_vR), repeat(sigma_vT), 
+                repeat(evaluator_threshold), repeat(plot_df), 
+                repeat(coords_in_xy), repeat(logfile), repeat(verbose))
+                    
+    # First we need to generate the multiprocessing pool object
+    pool = multiprocessing.Pool(processes=ncores)
+    
+    # Evaluate the Pool object
+    results = pool.starmap(evaluate_df_polar, args)
+    
+    return results
+
+# ----------------------------------------------------------------------------
+
+def triaxial_df_serial_wrapper(r,phi,halo_parms):
+    '''triaxial_df_parallel_wrapper:
+    
+    Very thin wrapper of other methods that uses defult methods to evaluate 
+    the DF of a triaxial halo. 
+    
+    Args:
+        r (float) - Galactocentric cylindrical radius in kpc
+        phi (float) - azimuth in rad (0 at Sun-GC line, increases CCW from GNP)
+        halo_parms (4-array) - 
+            
+    Return:
+        results
+    '''
+    
+    # Defaults for many parameters
+    t_evolve, t_form, t_steady = [10,-9,8] # Timing in Gyr
+    times = -np.array([0,t_evolve]) * apu.Gyr # Times in Gyr
+    sigma_vR, sigma_vT, sigma_vZ = [30,30,20] # Velocity dispersions
+    velocity_parms = [20,20,8,8]
+    
+    # Make the potential
+    mwpot = potential.MWPotential2014
+    halo_a,halo_b,halo_c,halo_phi = halo_parms
+    trihalo = ast1501.potential.make_MWPotential2014_triaxialNFW(halo_b=halo_b, 
+        halo_phi=halo_phi, halo_c=halo_c)
+    tripot_grow = ast1501.potential.make_tripot_dsw(trihalo=trihalo, 
+        tform=t_form, tsteady=t_steady)
+    potential.turn_physical_off(tripot_grow)
+    
+    # Action angle coordinates and the DF
+    qdf_aA= actionAngleAdiabatic(pot=potential.MWPotential2014, c=True)
+    qdf = df.quasiisothermaldf( hr= 2*apu.kpc, sr= sigma_vR*(apu.km/apu.s),
+                                sz= sigma_vZ*(apu.km/apu.s),
+                                hsr= 9.8*(apu.kpc), hsz= 7.6*(apu.kpc),
+                                pot= potential.MWPotential2014, aA= qdf_aA)
+    
+    logfile = open('./log.txt','w')
+    
+    # Now run the serial evaluator
+    results = evaluate_df_polar_serial(r,phi,tripot_grow,qdf,velocity_parms,times,
+    sigma_vR=sigma_vR,sigma_vT=sigma_vT,evaluator_threshold=0.0001,
+    plot_df=True,coords_in_xy=False,logfile=logfile,verbose=1)
+    
+    logfile.close()
+    
+    return results
+
+# ----------------------------------------------------------------------------
+
 def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
                                     range_phi=[0,np.pi],
                                     halo_b=1.0,
@@ -614,6 +914,7 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
             velocity grid spacing (dv..) and width in units of DF sigmas 
             (n_sigma..) (dvR,dvT,n_sigma_vR,n_sigma_vT)
         fileout [string] - Output filename
+        
         range_phi [2-array] - Range of phi over which to evaluate (low,high)
         halo_b [float] - Halo b/a [1.0]
         halo_c [float] - Halo c/a [1.0]
@@ -637,7 +938,10 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
     trihalo = ast1501.potential.make_MWPotential2014_triaxialNFW(halo_b=halo_b, 
         halo_phi=halo_phi, halo_c=halo_c)
     tripot_grow = ast1501.potential.make_tripot_dsw(trihalo=trihalo, tform=tform, tsteady=tsteady)
-    potential.turn_physical_off(tripot_grow)    
+    potential.turn_physical_off(tripot_grow)  
+    
+    # Make times  
+    times = -np.array([0,t_evolve]) * apu.Gyr
     
     # Velocity dispersions in km/s
     sigma_vR = 46/1.5
@@ -645,7 +949,8 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
     sigma_vZ = 28/1.5
     
     # Action angle coordinates and the DF
-    qdf_aA= actionAngleAdiabatic(pot=potential.MWPotential2014, c=True)
+    qdf_aA= actionAngle.actionAngleAdiabatic(pot=potential.MWPotential2014, 
+                                                c=True)
     qdf = df.quasiisothermaldf( hr= 2*apu.kpc,
                                 sr= sigma_vR*(apu.km/apu.s),
                                 sz= sigma_vZ*(apu.km/apu.s),
@@ -699,20 +1004,20 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
             vT_hi = velocity_parms[3]*sigma_vT + vcirc_offset
             
             # Make the velocity range, and distribution function arrays
-            _, dfp, vR_range, vT_range = ast1501.df.gen_vRvT_1D(dvT, dvR, 
-                                                                vR_low, vR_hi, 
-                                                                vT_low, vT_hi)
+            _, dfp, vR_range, vT_range = gen_vRvT_1D(dvT, dvR, 
+                                                    vR_low, vR_hi, 
+                                                    vT_low, vT_hi)
 
             R_z_phi = [r_posns[i],0,phi_posns[j]]
 
             # Now use the radius and phi position to evaluate the triaxial DF 
             t1 = time.time()
             
-            dfp = ast1501.df.evaluate_df_adaptive_vrvt(R_z_phi, times, tripot_grow, 
+            dfp = evaluate_df_adaptive_vrvt(R_z_phi, times, tripot_grow, 
                 qdf, vR_range, vT_range, dfp, threshold=0.0001)
                 
             # Calculate the moments
-            moments = ast1501.df.calculate_df_vmoments(dfp, vR_range, vT_range, 
+            moments = calculate_df_vmoments(dfp, vR_range, vT_range, 
                 dvR, dvT)
             vR_mean[j], vT_mean[j], vR_std[j], vT_std[j] = moments[1:]
             
@@ -731,11 +1036,15 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
             
         ###j
         radius_out[i] = np.array([r_posns[i],phi_posns,vR_mean,vT_mean,vR_std,vT_std],dtype='object')
+    ###i
+    
+    # Save results
+    np.save(fileout,radius_out)
+
+    if make_log:
+        logfile.close()
+    ##fi
 #def
-
-np.save(fileout,radius_out)
-
-logfile.close()
 
 # ----------------------------------------------------------------------------
 
@@ -746,6 +1055,8 @@ def generate_triaxial_df_map_rect():
     
     Outputs:
     '''
+    pass
+#def
 
 # ----------------------------------------------------------------------------
 
@@ -753,7 +1064,8 @@ def generate_grid_radial(   r_range,
                             phi_range,
                             delta_r,
                             delta_phi,
-                            delta_phi_in_arc=True):
+                            delta_phi_in_arc=True,
+                            return_rect_coords=False):
     '''generate_grid_radial:
     
     Generate a radial grid pursuant to a radial range, azimuth range, delta 
@@ -764,12 +1076,15 @@ def generate_grid_radial(   r_range,
         phi_range (float 2-array) - 2 element array of the phi range
         delta_r (float) - spacing in the r direction
         delta_phi (float) - spacing in the azimuth direction
+        
         delta_phi_in_arc [bool] - delta_phi is given as a delta in arclength 
             instead of angle [True]
+        return_rect_coords [bool] - Return the grid in rectangular coordinates 
+            as well as polar coordinates.
     
     Returns:
-        grid_rpoints (float array) - 1-D array of x grid points
-        grid_phipoints (float array) - 1-D array of y grid points
+        grid_rpoints (float array) - 1-D array of r grid points
+        grid_phipoints (float array) - 1-D array of phi grid points
     '''
     
     # Make the radial points
@@ -791,27 +1106,38 @@ def generate_grid_radial(   r_range,
             
             # Center the points to account for an uneven gridding, then center 
             # the points in the spacing window and convert back to angle.
-            grid_arcpoints_new -= ( ( arc_max - arc_min ) % delta_phi )
-            grid_arcpoints_new += ( delta_phi / 2 )
+            grid_arcpoints_new += ( ( arc_max - arc_min ) % delta_phi )/2
             grid_phipoints_new = grid_arcpoints_new / grid_rpoints_core[i]
             
+            # Make the new radii points
+            grid_rpoints_new = np.ones_like(grid_phipoints_new)*grid_rpoints_core[i] + delta_r/2
+            
             # Append to the total array
-            grid_phipoints = np.append( grid_phipoints, new_grid_phipoints )
+            grid_phipoints = np.append( grid_phipoints, grid_phipoints_new )
+            grid_rpoints = np.append( grid_rpoints, grid_rpoints_new )
             
         else:
             # Just do a straight range in azimuth.
-            grid_phipoints = np.append( grid_phipoints, 
-                np.arrange( phi_range[0], phi_range[1], delta_phi ) )
+            grid_phipoints_new = np.arrange( phi_range[0], phi_range[1], delta_phi )
+            grid_phipoints = np.append( grid_phipoints, grid_phipoints_new )
+            grid_rpoints_new = np.ones_like(grid_phipoints_new)*grid_rpoints_core[i] + delta_r/2
+            grid_rpoints = np.append( grid_rpoints, 
+                np.ones_like(grid_phipoints_new)*grid_rpoints_core[i] )
         ##ie
-    
-    return grid_rpoints, grid_phipoints
-        
     ###i
+    if return_rect_coords:
+        grid_xpoints = np.cos( grid_phipoints ) * grid_rpoints # X positive towards Sun-GC line
+        grid_ypoints = np.sin( grid_phipoints ) * grid_rpoints # Y positive towards Gal. Rotation
+        return grid_rpoints, grid_phipoints, grid_xpoints, grid_ypoints
+    else:
+        return grid_rpoints, grid_phipoints
+    ##ie    
 #def
     
 # ----------------------------------------------------------------------------
 
-def generate_grid_rect():
+def generate_grid_rect(x_range, y_range, delta_x, delta_y,
+                        return_polar_coords=False):
     '''generate_grid_rect:
     
     Generate a rectangular grid pursuant to an x range, a y range and a delta 
@@ -822,7 +1148,9 @@ def generate_grid_rect():
         y_range (float 2-array) - 2 element array of the Y range
         delta_x (float) - spacing in the X direction
         delta_y (float) - spacing in the Y direction
-        include_endpoints [bool] - Include the end points in the array [False]
+        
+        return_polar_coords (bool) - Return the grid in polar coordinates as 
+            well as rectangular coordinates? [False]
     
     Returns:
         grid_xpoints (float array) - 1-D array of x grid points
@@ -830,14 +1158,23 @@ def generate_grid_rect():
     '''
     
     # Make the x and y range
-    grid_xpoints_core = np.arange(x_range[0], x_range[1], delta_x)
-    grid_ypoints_core = np.arange(y_range[0], y_range[1], delta_y)
+    grid_xpoints_core = np.arange(x_range[0], x_range[1], delta_x) + delta_x/2
+    grid_ypoints_core = np.arange(y_range[0], y_range[1], delta_y) + delta_y/2
     
     # Make the x and y grid
     grid_xpoints, grid_ypoints = np.meshgrid(   grid_xpoints_core,
                                                 grid_ypoints_core,
                                                 indexing='ij')
-                                                
-    return grid_xpoints, grid_ypoints
+    grid_xpoints = grid_xpoints.flatten()
+    grid_ypoints = grid_ypoints.flatten()
+    
+    # Return the polar grid as well as the rectangular grid?
+    if return_polar_coords:
+        grid_rpoints = np.sqrt( grid_xpoints**2 + grid_ypoints**2)
+        grid_phipoints = np.arctan2(grid_ypoints,grid_xpoints) # 0 at Sun-GC line
+        return grid_xpoints, grid_ypoints, grid_rpoints, grid_phipoints
+    else:
+        return grid_xpoints, grid_ypoints
+    ##ie
 #def
     
