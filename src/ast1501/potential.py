@@ -9,8 +9,7 @@
 # ----------------------------------------------------------------------------
 
 ### Docstrings and metadata:
-'''
-Defined functions for the AST 1501 project: Potential utilities
+'''Defined functions for the AST 1501 project: Potential utilities
 '''
 __author__ = "James Lane"
 
@@ -22,14 +21,14 @@ import sys, os, pdb, copy
 # import glob
 # import subprocess
 
+##
+from matplotlib import pyplot as plt
+
 ## Astropy
-# from astropy.io import fits
-# from astropy.coordinates import SkyCoord
-# from astropy import table
 from astropy import units as apu
 
 ## galpy
-# from galpy import orbit
+from galpy import orbit
 from galpy import potential
 from galpy.util import bovy_conversion as gpconv
 # from galpy.util import bovy_coords as gpcoords
@@ -78,11 +77,14 @@ def get_MWPotential2014():
     return parm_arr
 #def
 
-def make_MWPotential2014_triaxialNFW(  halo_b=1.0, halo_phi=0.0, halo_c=1.0,
-                                    halo_amp=None, halo_a=None):
-    '''make_MWPotential2014_triaxial:
+def make_MWPotential2014_triaxialNFW(   halo_b=1.0, 
+                                        halo_phi=0.0,
+                                        halo_c=1.0,
+                                        halo_amp=None, 
+                                        halo_a=None):
+    '''make_MWPotential2014_triaxialNFW:
     
-    Generate a triaxial NFW MW halo
+    Generate a triaxial NFW with the same properties as that in MWPotential2014
     
     Args:
         halo_b (float) - Halo secondary to primary axis ratio (b/a) [1.0]
@@ -113,7 +115,7 @@ def make_MWPotential2014_triaxialNFW(  halo_b=1.0, halo_phi=0.0, halo_c=1.0,
                                     b=halo_b, pa=halo_phi, c=halo_c)
 #def
 
-def make_tripot_dsw(trihalo, tform, tsteady, 
+def make_tripot_dsw(trihalo, t_form, t_steady, 
                         mwhalo=None, mwdisk=None, mwbulge=None):
     '''make_tripot_dsw
     
@@ -122,8 +124,10 @@ def make_tripot_dsw(trihalo, tform, tsteady,
     
     Args:
         halo (galpy Potential object) - The triaxial halo to introduce
-        tform (float) - Time of triaxial halo formation in Gyr (No astropy units).
-        tsteady (float) - Time of finished triaxial halo formation in Gyr (No astropy units).
+        t_form (float) - Time of triaxial halo formation in Gyr 
+            (No astropy units attached).
+        t_steady (float) - Time of finished triaxial halo formation in Gyr 
+            (No astropy units attached).
         mwhalo (galpy Potential object) - Halo model to slowly remove. If None 
             then use the same as MWPotential2014 [None]
         mwdisk (galpy Potential object) - Disk model to use. If None then use 
@@ -158,12 +162,89 @@ def make_tripot_dsw(trihalo, tform, tsteady,
     
     # Wrap the old halo in a DSW
     mwhalo_decay_dsw = potential.DehnenSmoothWrapperPotential(pot=use_mwhalo, 
-        tform=tform*apu.Gyr, tsteady=tsteady*apu.Gyr, decay=True)
+        tform=t_form*apu.Gyr, tsteady=t_steady*apu.Gyr, decay=True)
     
     # Wrap the triaxial halo in a DSW:
     trihalo_dsw = potential.DehnenSmoothWrapperPotential(pot=trihalo,
-        tform=tform*apu.Gyr, tsteady=tsteady*apu.Gyr)
+        tform=t_form*apu.Gyr, tsteady=t_steady*apu.Gyr)
         
     return [use_mwbulge, use_mwdisk, mwhalo_decay_dsw, trihalo_dsw]
 
 #
+
+def find_closed_orbit(pot,Lz,rtol=0.001,R0=1.0,vR0=0.0,plot_loop=False):
+    '''find_closed_orbit:
+    
+    Calculate a closed orbit for a given angular momentum
+    
+    Args:
+        pot (galpy Potential object) - Potential for which to determine 
+            the closed orbit
+        Lz (float) - Angular momentum for the closed orbit
+        rtol (float) - change in radius marking the end of the search [0.01]
+        R0 (float) - Starting radius [1.0]
+        vR0 (float) - Starting radial velocity [0.0]
+        plot_loop (bool) - Plot the surface during each loop evaluation? [False]
+    
+    Returns:
+        orbit (galpy Orbit object) - Orbit object representing a closed 
+            orbit in the given potential for the given angular momentum
+    '''
+    
+    # Turn off physical
+    potential.turn_physical_off(pot)
+    
+    # Initialize starting orbit
+    o = orbit.Orbit([R0,vR0,Lz/R0,0.0,0.0,0.0])
+    
+    # Evaluate the while loop
+    loop_counter = 0
+    delta_R = rtol*2.
+    while delta_R > rtol:
+        
+        # Evaluate the crossing time so the integration can be performed 
+        # for ~ long enough. Integrate for 100 crossing times.
+        tdyn = 2*np.pi*(R0/np.abs(potential.evaluateRforces(pot,R0,0.0,phi=0.0)))**0.5
+        times = np.linspace(0,100*tdyn,num=10001)
+        o.integrate(times,pot)    
+        
+        # Evaluate all points where the orbit crosses from negative to positive 
+        # phi
+        phis = o.phi(times) - np.pi
+        shift_phis = np.roll(phis,-1)
+        where_cross = (phis[:-1] < 0.)*(shift_phis[:-1] > 0.)
+        R_cross = o.R(times)[:-1][where_cross]
+        vR_cross = o.vR(times)[:-1][where_cross]
+        
+        # Plot the surface of section as a test, if asked
+        if plot_loop:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.scatter(R_cross,vR_cross,s=20,color='Black')
+            ax.set_xlabel(r'$R$')
+            ax.set_ylabel(r'$v_{R}$')
+            ax.set_title(   r'R='+str(round(o.R(0),6))+\
+                            ', vR='+str(round(o.vR(0),6))+\
+                            ', vT='+str(round(o.vT(0),6))
+                        )
+            fig.savefig('./loop_fig'+str(loop_counter)+'.pdf')
+            plt.close('all')
+        ##fi
+        
+        # Calculate the difference in radius
+        delta_R = np.abs( o.R(0) - np.average( R_cross ) )
+        
+        # Update the orbit
+        o = orbit.Orbit( [  np.average( R_cross ),
+                            np.average( vR_cross ),
+                            Lz/np.average( R_cross ),
+                            0.0,0.0,0.0] )
+    
+        # Count
+        loop_counter += 1
+        
+    return o
+#def
+
+
+

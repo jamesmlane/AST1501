@@ -1,0 +1,7 @@
+R=7.5 kpc, phi=-1.07 rad, t=38 s
+R=7.5 kpc, phi=1.07 rad, t=39 s
+R=8.5 kpc, phi=-0.94 rad, t=34 s
+R=8.5 kpc, phi=0.94 rad, t=34 s
+R=9.5 kpc, phi=-0.83 rad, t=28 s
+R=9.5 kpc, phi=0.83 rad, t=28 s
+Took 203 s total

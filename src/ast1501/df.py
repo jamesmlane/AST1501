@@ -13,8 +13,7 @@
 # ----------------------------------------------------------------------------
 
 ### Docstrings and metadata:
-'''
-Functions to calculate DFs
+'''Functions to calculate DFs
 '''
 __author__ = "James Lane"
 
@@ -39,6 +38,7 @@ from galpy import df
 from galpy import actionAngle
 from galpy.util import bovy_coords as gpcoords
 from galpy.util import bovy_conversion as gpconv
+from galpy.util import multi
 
 # ----------------------------------------------------------------------------
 
@@ -787,7 +787,7 @@ def evaluate_df_polar_serial(r,phi,pot,df,velocity_parms,times,
 
 # ----------------------------------------------------------------------------
 
-def evaluate_df_polar_parallel(r,phi,halo_parms,velocity_parms,ncores,
+def evaluate_df_polar_parallel(r,phi,pot,df,velocity_parms,times,ncores,
                                 sigma_vR=30.0,
                                 sigma_vT=30.0,
                                 evaluator_threshold=0.0001,
@@ -795,7 +795,7 @@ def evaluate_df_polar_parallel(r,phi,halo_parms,velocity_parms,ncores,
                                 coords_in_xy=False,
                                 logfile=None,
                                 verbose=0):
-    '''calculate_df_polar_parallel:
+    '''evaluate_df_polar_parallel:
     
     Calculate the velocity moments of a DF pertaining to a time-varying 
     potential in parallel. Function is a wrapper of evaluate_df_polar
@@ -827,16 +827,23 @@ def evaluate_df_polar_parallel(r,phi,halo_parms,velocity_parms,ncores,
     # First we need to put the input arguments into the correct form. Every 
     # keywrod to evaluate_df_polar must be specified. If it is a single 
     # value keyword then use repeat() to make it the same size
-    args = zip( r, phi, repeat(halo_parms), repeat(velocity_parms), 
-                repeat(sigma_vR), repeat(sigma_vT), 
-                repeat(evaluator_threshold), repeat(plot_df), 
-                repeat(coords_in_xy), repeat(logfile), repeat(verbose))
-                    
-    # First we need to generate the multiprocessing pool object
-    pool = multiprocessing.Pool(processes=ncores)
+    # arguments = zip( r, phi, repeat(halo_parms), repeat(velocity_parms), 
+    #             repeat(sigma_vR), repeat(sigma_vT), 
+    #             repeat(evaluator_threshold), repeat(plot_df), 
+    #             repeat(coords_in_xy), repeat(logfile), repeat(verbose))
+    # 
+    # # First we need to generate the multiprocessing pool object
+    # pool = multiprocessing.Pool(processes=ncores)
+    # 
+    # # Evaluate the Pool object
+    # results = pool.starmap(evaluate_df_polar, arguments)
     
-    # Evaluate the Pool object
-    results = pool.starmap(evaluate_df_polar, args)
+    results = multi.parallel_map(\
+        (lambda x: evaluate_df_polar(r[x], phi[x], pot, df, velocity_parms, 
+        times, sigma_vR, sigma_vT, evaluator_threshold, plot_df, coords_in_xy, 
+        logfile, verbose)), 
+        np.arange(0,n_calls,1,dtype='int'),  
+        ncores)
     
     return results
 
