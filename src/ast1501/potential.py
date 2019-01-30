@@ -18,8 +18,6 @@ __author__ = "James Lane"
 ## Basic
 import numpy as np
 import sys, os, pdb, copy
-# import glob
-# import subprocess
 
 ##
 from matplotlib import pyplot as plt
@@ -31,14 +29,13 @@ from astropy import units as apu
 from galpy import orbit
 from galpy import potential
 from galpy.util import bovy_conversion as gpconv
-# from galpy.util import bovy_coords as gpcoords
 
 # ----------------------------------------------------------------------------
 
-def get_MWPotential2014():
-    '''get_MWPotential2014:
+def _get_MWPotential2014_params():
+    '''_get_MWPotential2014_params:
     
-    Return the paramters of galpy's MWPotential2014 object as variables
+    Return the parameters of galpy's MWPotential2014 object as variables
     with astropy units
     
     Args:
@@ -77,14 +74,11 @@ def get_MWPotential2014():
     return parm_arr
 #def
 
-def make_MWPotential2014_triaxialNFW(   halo_b=1.0, 
-                                        halo_phi=0.0,
-                                        halo_c=1.0,
-                                        halo_amp=None, 
-                                        halo_a=None):
-    '''make_MWPotential2014_triaxialNFW:
+def make_triaxialNFW(halo_b=1.0, halo_phi=0.0, halo_c=1.0, halo_amp=None, 
+                        halo_a=None):
+    '''make_triaxialNFW:
     
-    Generate a triaxial NFW with the same properties as that in MWPotential2014
+    Generate a triaxial NFW. Normally use the same properties as MWPotential2014
     
     Args:
         halo_b (float) - Halo secondary to primary axis ratio (b/a) [1.0]
@@ -99,31 +93,31 @@ def make_MWPotential2014_triaxialNFW(   halo_b=1.0,
         TriaxialNFW object    
     '''
 
-    _, _, _, _, _, _, mwhalo_a, mwhalo_amp = get_MWPotential2014()
+    _, _, _, _, _, _, mwhalo_a, mwhalo_amp = _get_MWPotential2014_params()
     
     # Check argument choices
     if halo_amp == None:
         use_halo_amp = mwhalo_amp
-    else: use_halo_amp = halo_mass
+    else: use_halo_amp = halo_amp
     ##ie
     if halo_a == None:
         use_halo_a = mwhalo_a
-    else: use_halo_a = mwhalo_a
+    else: use_halo_a = halo_a
     ##ie
     
     return potential.TriaxialNFWPotential(amp=use_halo_amp, a=use_halo_a, 
                                     b=halo_b, pa=halo_phi, c=halo_c)
 #def
 
-def make_tripot_dsw(trihalo, t_form, t_steady, 
-                        mwhalo=None, mwdisk=None, mwbulge=None):
-    '''make_tripot_dsw
+def make_halo_dsw(new_halo, t_form=-9, t_steady=-8, mwhalo=None, mwdisk=None, 
+                    mwbulge=None):
+    '''make_halo_dsw
     
-    Generate a triaxial smoothly varying NFW profile that interpolates between 
-    a spherical halo and a triaxial halo.
+    Slowly interpolate between a known MW halo (default is MWPotential2014) to 
+    a new MW halo.
     
     Args:
-        halo (galpy Potential object) - The triaxial halo to introduce
+        new_halo (galpy Potential object) - The new halo to introduce
         t_form (float) - Time of triaxial halo formation in Gyr 
             (No astropy units attached).
         t_steady (float) - Time of finished triaxial halo formation in Gyr 
@@ -137,12 +131,12 @@ def make_tripot_dsw(trihalo, t_form, t_steady,
         
         
     Returns:
-        tripot (galpy Potential object array) - triaxial time varying potential  
+        pot_tdep (galpy Potential object array) - time varying potential  
     '''
 
     # Get MWPotential2014 parameters
     mwbulge_alpha, mwbulge_rc, mwbulge_amp, mwdisk_a, mwdisk_b, mwdisk_amp,\
-        mwhalo_a, mwhalo_amp = get_MWPotential2014()
+        mwhalo_a, mwhalo_amp = _get_MWPotential2014_params()
     
     # Check potential arguments
     if mwbulge == None:
@@ -164,13 +158,53 @@ def make_tripot_dsw(trihalo, t_form, t_steady,
     mwhalo_decay_dsw = potential.DehnenSmoothWrapperPotential(pot=use_mwhalo, 
         tform=t_form*apu.Gyr, tsteady=t_steady*apu.Gyr, decay=True)
     
-    # Wrap the triaxial halo in a DSW:
-    trihalo_dsw = potential.DehnenSmoothWrapperPotential(pot=trihalo,
+    # Wrap the new halo in a DSW:
+    new_halo_grow_dsw = potential.DehnenSmoothWrapperPotential(pot=new_halo,
         tform=t_form*apu.Gyr, tsteady=t_steady*apu.Gyr)
         
-    return [use_mwbulge, use_mwdisk, mwhalo_decay_dsw, trihalo_dsw]
+    return [use_mwbulge, use_mwdisk, mwhalo_decay_dsw, new_halo_grow_dsw]
+#def
 
-#
+def make_triaxialNFW_dsw(halo_b=1.0, halo_phi=0.0, halo_c=1.0, halo_amp=None, 
+                    halo_a=None, t_form=-9, t_steady=8, mwhalo=None, 
+                    mwdisk=None, mwbulge=None):
+    '''make_triaxialNFW_dsw:
+    
+    Wrapper function that uses make_triaxialNFW and make_halo_dsw to generate a 
+    time-dependent potential that varies from the MWPotential2014 halo to a 
+    traxial halo.
+    
+    Args:
+        halo_b (float) - Halo secondary to primary axis ratio (b/a) [1.0]
+        halo_phi (float) - Halo primary axis position angle in radians [0.0]
+        halo_c (float) - Halo tertiary to primary axis ratio (c/a) [1.0]
+        halo_amp (float) - Halo amplitude. If None it will be identical 
+            to MWPotential2014 [None]
+        halo_a (float) - Halo scale length. If None it will be identical 
+            to MWPotential2014 [None]
+        t_form (float) - Time of triaxial halo formation in Gyr 
+            (No astropy units attached) [-9.0].
+        t_steady (float) - Time of finished triaxial halo formation in Gyr 
+            (No astropy units attached) [8.0].
+        mwhalo (galpy Potential object) - Halo model to slowly remove. If None 
+            then use the same as MWPotential2014 [None]
+        mwdisk (galpy Potential object) - Disk model to use. If None then use 
+            the same as MWPotential2014 [None]
+        mwbulge (galpy Potential object) - bulge model to use. If None then use 
+            the same as MWPotential2014 [None]
+        
+    Returns:
+        pot_tdep (galpy Potential object array) - time varying potential 
+    '''
+    
+    trihalo = make_triaxialNFW(halo_b=halo_b, halo_phi=halo_phi, halo_c=halo_c, 
+                                halo_amp=halo_amp, halo_a=halo_a)
+                                
+    pot_tdep = make_halo_dsw(trihalo, t_form=t_form, t_steady=t_steady, 
+                                mwhalo=mwhalo, mwdisk=mwdisk, mwbulge=mwbulge)
+                                
+    return pot_tdep
+#def
 
 def find_closed_orbit(pot,Lz,rtol=0.001,R0=1.0,vR0=0.0,plot_loop=False):
     '''find_closed_orbit:
@@ -189,6 +223,9 @@ def find_closed_orbit(pot,Lz,rtol=0.001,R0=1.0,vR0=0.0,plot_loop=False):
     Returns:
         orbit (galpy Orbit object) - Orbit object representing a closed 
             orbit in the given potential for the given angular momentum
+            
+    To Do:
+        Should do for a fixed quantity - E
     '''
     
     # Turn off physical
@@ -205,7 +242,7 @@ def find_closed_orbit(pot,Lz,rtol=0.001,R0=1.0,vR0=0.0,plot_loop=False):
         # Evaluate the crossing time so the integration can be performed 
         # for ~ long enough. Integrate for 100 crossing times.
         tdyn = 2*np.pi*(R0/np.abs(potential.evaluateRforces(pot,R0,0.0,phi=0.0)))**0.5
-        times = np.linspace(0,100*tdyn,num=10001)
+        times = np.linspace(0,100*tdyn,num=100001)
         o.integrate(times,pot)    
         
         # Evaluate all points where the orbit crosses from negative to positive 
