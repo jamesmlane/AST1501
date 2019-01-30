@@ -787,7 +787,7 @@ def evaluate_df_polar_serial(r,phi,pot,df,velocity_parms,times,
 
 # ----------------------------------------------------------------------------
 
-def evaluate_df_polar_parallel(r,phi,pot,df,velocity_parms,times,ncores,
+def evaluate_df_polar_parallel(r,phi,use_pot,use_df,velocity_parms,times,ncores,
                                 sigma_vR=30.0,
                                 sigma_vT=30.0,
                                 evaluator_threshold=0.0001,
@@ -803,9 +803,9 @@ def evaluate_df_polar_parallel(r,phi,pot,df,velocity_parms,times,ncores,
     Args:
         r (float) - Galactocentric cylindrical radius in kpc
         phi (float) - azimuth in rad (0 at Sun-GC line, increases CCW from GNP)
-        pot (galpy Potential object) - Time dependent potential in which to 
+        use_pot (galpy Potential object) - Time dependent potential in which to 
             evaluate DF
-        df (galpy df object) - distribution function object
+        use_df (galpy df object) - distribution function object
         velocity_parms (4-array) - parameters to set tangential/radial
             velocity grid spacing (dv..), and width in units of DF sigmas 
             (n_sigma..), looks like: (dvR,dvT,n_sigma_vR,n_sigma_vT)
@@ -838,12 +838,17 @@ def evaluate_df_polar_parallel(r,phi,pot,df,velocity_parms,times,ncores,
     # # Evaluate the Pool object
     # results = pool.starmap(evaluate_df_polar, arguments)
     
-    results = multi.parallel_map(\
-        (lambda x: evaluate_df_polar(r[x], phi[x], pot, df, velocity_parms, 
-        times, sigma_vR, sigma_vT, evaluator_threshold, plot_df, coords_in_xy, 
-        logfile, verbose)), 
+    # Turn the function evalation into a lambda so only 1 argument is 
+    # required.
+    lambda_func = (lambda x: evaluate_df_polar(r[x], phi[x], 
+        use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
+        evaluator_threshold, plot_df, coords_in_xy, logfile, verbose))
+    
+    pdb.set_trace()
+    
+    results = multi.parallel_map(lambda_func, 
         np.arange(0,n_calls,1,dtype='int'),  
-        ncores)
+        numcores=ncores)
     
     return results
 
