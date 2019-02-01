@@ -824,28 +824,12 @@ def evaluate_df_polar_parallel(r,phi,use_pot,use_df,velocity_parms,times,ncores,
     # Number of total iterations of the evaluate_df_polar function
     n_calls = len(r)
     
-    # First we need to put the input arguments into the correct form. Every 
-    # keywrod to evaluate_df_polar must be specified. If it is a single 
-    # value keyword then use repeat() to make it the same size
-    # arguments = zip( r, phi, repeat(halo_parms), repeat(velocity_parms), 
-    #             repeat(sigma_vR), repeat(sigma_vT), 
-    #             repeat(evaluator_threshold), repeat(plot_df), 
-    #             repeat(coords_in_xy), repeat(logfile), repeat(verbose))
-    # 
-    # # First we need to generate the multiprocessing pool object
-    # pool = multiprocessing.Pool(processes=ncores)
-    # 
-    # # Evaluate the Pool object
-    # results = pool.starmap(evaluate_df_polar, arguments)
-    
-    # Turn the function evalation into a lambda so only 1 argument is 
-    # required.
+    # Make a lambda function to pass keywords
     lambda_func = (lambda x: evaluate_df_polar(r[x], phi[x], 
         use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
         evaluator_threshold, plot_df, coords_in_xy, logfile, verbose))
     
-    pdb.set_trace()
-    
+    # Evaluate the results in parallel
     results = multi.parallel_map(lambda_func, 
         np.arange(0,n_calls,1,dtype='int'),  
         numcores=ncores)
