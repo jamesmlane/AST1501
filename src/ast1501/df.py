@@ -4,7 +4,8 @@
 # AUTHOR - James Lane
 # PROJECT - AST1501
 # CONTENTS: 
-# 1. evaluate_df_adaptive_vrvt
+# 1. evaluate_df_adaptive_vRvT
+# 2. calculate_df_vmoments_vRvT
 # 2. hist_df
 # 3. calculate_df_vmoments
 # 4. generate_triaxial_df_map_polar
@@ -42,7 +43,7 @@ from galpy.util import multi
 
 # ----------------------------------------------------------------------------
 
-def evaluate_df_adaptive_vrvt(R_z_phi,
+def evaluate_df_adaptive_vRvT(R_z_phi,
                                 times,
                                 pot,
                                 df_evaluator,
@@ -53,7 +54,7 @@ def evaluate_df_adaptive_vrvt(R_z_phi,
                                 threshold=0.001,
                                 threshold_norm=True):
     '''
-    evaluate_df_adaptive:
+    evaluate_df_adaptive_vRvT:
     
     Evaluate the DF of a potential using the reverse integration technique, and 
     use a simple threshold to avoid calculating the DF in regions where it 
@@ -571,8 +572,7 @@ def gen_vRvT_1D(dvT, dvR, vR_low, vR_hi, vT_low, vT_hi, verbose=0):
 
 # ----------------------------------------------------------------------------
 
-def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, 
-            log=False):
+def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False):
     '''hist_df:
     
     Plot a 2D histogram of a distribution function
@@ -603,7 +603,7 @@ def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax,
         cbar = plt.colorbar(img, ax=ax)
         cbar.set_label(r'$f/f_{max}$', fontsize=16)
     ##ie
-
+    
     # Decorate
     ax.set_xlabel(r'$V_{R}$ [km/s]', fontsize=14)
     ax.set_ylabel(r'$V_{\phi}$ [km/s]', fontsize=14)
@@ -619,7 +619,6 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
                             evaluator_threshold=0.0001,
                             plot_df=True,
                             coords_in_xy=False,
-                            logfile=None,
                             verbose=0
                             ):
     '''evaluate_df_polar:
@@ -650,8 +649,6 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
         coords_in_xy (bool) - if True r and phi are given as galactocentric x 
             and y (in kpc) instead of polar coordinates. Note X is positive 
             from GC->Sun and Y is positive towards galactic rotation [False]
-        logfile (writeable object) - Open text file where timing information 
-            can be recorded. None means no log will be written [None]
         verbose (int) - Verbosity level [0]
                 
     Returns:
@@ -692,26 +689,22 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
     # Make the position array
     R_z_phi = [r,0,phi]
     
-    # If we're logging take the time
-    if logfile != None:
-        t1 = time.time()
-    ##fi
+    # Record the time
+    t1 = time.time()
     
     # Calculate the distribution function using the adaptive evaluator.
-    dfp = evaluate_df_adaptive_vrvt(R_z_phi, times, pot, df, vR_range, 
+    dfp = evaluate_df_adaptive_vRvT(R_z_phi, times, pot, df, vR_range, 
         vT_range, dfp, threshold=evaluator_threshold)
         
     # Calculate the moments of the DF
     moments = calculate_df_vmoments_vRvT(dfp, vR_range, vT_range, dvR, dvT)
     dens, vR_mean, vT_mean, vR_std, vT_std = moments
     
-    # If we're logging take the time and output the timing information.
-    if logfile != None:
-        t2 = time.time()
-        logfile.write(  'R='+str(round(r,2))+\
-                        ' kpc, phi='+str(round(phi,2))+\
-                        ' rad, t='+str(round(t2-t1))+' s\n' )
-    ##fi
+    # Write the logging text
+    t2 = time.time()
+    logtext = 'R='+str(round(r,2))+\
+              ' kpc, phi='+str(round(phi,2))+\
+              ' rad, t='+str(round(t2-t1))+' s\n'
     
     # Plot the distribution function
     if plot_df:
@@ -728,7 +721,7 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
         print( 'Done R: '+str(round(r,2))+' phi: '+str(round(phi,2)) )
     ##fi
     
-    output_array = np.array([r,phi,x,y,vR_mean,vR_std,vT_mean,vT_std])
+    output_array = np.array([r,phi,x,y,vR_mean,vR_std,vT_mean,vT_std,logtext])
     
     return output_array
 #def
@@ -827,14 +820,28 @@ def evaluate_df_polar_parallel(r,phi,use_pot,use_df,velocity_parms,times,ncores,
     # Make a lambda function to pass keywords
     lambda_func = (lambda x: evaluate_df_polar(r[x], phi[x], 
         use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
-        evaluator_threshold, plot_df, coords_in_xy, logfile, verbose))
+        evaluator_threshold, plot_df, coords_in_xy, verbose))
     
     # Evaluate the results in parallel
     results = multi.parallel_map(lambda_func, 
         np.arange(0,n_calls,1,dtype='int'),  
         numcores=ncores)
+        
+    # Turn the results into a numpy array
+    results = np.array(results)
     
-    return results
+    # Now if we're logging then append the log text to the logfile and remove 
+    # it from the output
+    if logfile != None:
+        logfile.write('\n')
+        for i in range( results.shape[0] ):
+            logfile.write(results[i,-1])
+        ###i
+    ##fi
+    
+    # Returned the pared down results array, without the logging text.
+    return results[:,:-1]
+#def
 
 # ----------------------------------------------------------------------------
 
@@ -842,7 +849,7 @@ def triaxial_df_serial_wrapper(r,phi,halo_parms):
     '''triaxial_df_parallel_wrapper:
     
     Very thin wrapper of other methods that uses defult methods to evaluate 
-    the DF of a triaxial halo. 
+    the DF of a triaxial halo. Works in serial, i.e. no parallel.
     
     Args:
         r (float) - Galactocentric cylindrical radius in kpc
@@ -885,6 +892,7 @@ def triaxial_df_serial_wrapper(r,phi,halo_parms):
     logfile.close()
     
     return results
+#def
 
 # ----------------------------------------------------------------------------
 
@@ -1009,7 +1017,7 @@ def generate_triaxial_df_map_polar(dr,darc,range_r,velocity_parms,fileout,
             # Now use the radius and phi position to evaluate the triaxial DF 
             t1 = time.time()
             
-            dfp = evaluate_df_adaptive_vrvt(R_z_phi, times, tripot_grow, 
+            dfp = evaluate_df_adaptive_vRvT(R_z_phi, times, tripot_grow, 
                 qdf, vR_range, vT_range, dfp, threshold=0.0001)
                 
             # Calculate the moments
@@ -1173,4 +1181,48 @@ def generate_grid_rect(x_range, y_range, delta_x, delta_y,
         return grid_xpoints, grid_ypoints
     ##ie
 #def
+
+# ----------------------------------------------------------------------------
+
+def get_vsigma(source='default'):
+    '''get_vsigma:
     
+    Return the velocity dispersions in the radial, tangential, and vertical 
+    directions for use in a quasi-isothermal distribution function in km/s. 
+    Function defined for continuity across scripts.
+    
+    Args: 
+        source (float) - Where do the values for the velocity dispersion come 
+            from. ['default']
+    
+    Returns:
+        vsigma (3-array) - Velocity dispersion in the radial, tangential, and 
+            vertical directions at the solar position, in km/s.
+    '''
+    if source == 'default':
+        return [30,20,20]
+    ##ie
+#def
+
+# ----------------------------------------------------------------------------
+
+def get_scale_lengths(source='default'):
+    '''get_heights:
+    
+    Return the scale lengths for use in a quasi-isothermal distribution, 
+    in kpc. Function defined for continuity across scripts.
+    
+    Args: 
+        source (float) - Where do the values for the scale heights come 
+            from. ['default']
+    
+    Returns:
+        lengths (3-array) - Scale length for radial, radial velocity dispersion, 
+            and vertical velocity dispersion
+    '''
+    if source == 'default':
+        return [2,9.8,7.6]
+    ##ie
+#def
+
+# ----------------------------------------------------------------------------
