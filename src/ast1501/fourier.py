@@ -24,7 +24,8 @@ def psd(arr,dx,pad=True,return_phase=True):
     '''
     psd:
     
-    Calculate the power spectrum of an array
+    Calculate the power spectrum of an array. Power is calculated such that 
+    if supplied with a sine wave the Mean-Squared-Amplitude is returned.
     
     Args:
         arr (array) - 1D data array
@@ -58,8 +59,6 @@ def psd(arr,dx,pad=True,return_phase=True):
     
     # Then calculate the periodogram estimate of the power spectrum
     ret = np.abs(arr_fft)**2. + np.abs(arr_fft[::-1])**2.
-    
-    pdb.set_trace()
     
     # Correct the 0 order term and account for the padding by multiplying the 
     # power by 2
