@@ -591,7 +591,8 @@ def hist_df(df, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False):
     ## Make the original distribution function
     img_arr = np.rot90( df/np.max(df) )
     if log:
-        img = ax.imshow(np.log10(img_arr), interpolation='nearest',
+        log_img_arr[np.where(img_arr <= 0)] = 1e-10
+        img = ax.imshow(np.log10(log_img_arr), interpolation='nearest',
                             extent=[vR_low, vR_hi, vT_low, vT_hi],
                             cmap='viridis', vmax=0, vmin=-3)
         cbar = plt.colorbar(img, ax=ax)
