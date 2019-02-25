@@ -109,6 +109,44 @@ def make_triaxialNFW(halo_b=1.0, halo_phi=0.0, halo_c=1.0, halo_amp=None,
                                     b=halo_b, pa=halo_phi, c=halo_c)
 #def
 
+def make_MWPotential2014_triaxialNFW(halo_b=1.0, halo_phi=0.0, halo_c=1.0, 
+                                        halo_amp=None, halo_a=None):
+    '''make_MWPotential2014_triaxialNFW:
+    
+    Return MWPotential2014 with a triaxial halo rather than a spherical NFW 
+    halo.
+    
+    Args:
+        halo_b (float) - Halo secondary to primary axis ratio (b/a) [1.0]
+        halo_phi (float) - Halo primary axis position angle in radians [0.0]
+        halo_c (float) - Halo tertiary to primary axis ratio (c/a) [1.0]
+        halo_amp (float) - Halo amplitude. If None it will be identical 
+            to MWPotential2014 [None]
+        halo_a (float) - Halo scale length. If None it will be identical 
+            to MWPotential2014 [None]
+            
+    Returns:
+        Potential object - MWPotential2014 with halo replaced by triaxial halo  
+    '''
+    
+    # Make the triaxial halo
+    trihalo = make_triaxialNFW(halo_b=halo_b, halo_phi=halo_phi, halo_c=halo_c, 
+                                halo_amp=halo_amp, halo_a=halo_a)
+    
+    # Get MWPotential2014 parameters
+    mwbulge_alpha, mwbulge_rc, mwbulge_amp, mwdisk_a, mwdisk_b, mwdisk_amp,\
+        _, _ = _get_MWPotential2014_params()
+    
+    # Make the bulge and disk
+    mwbulge = potential.PowerSphericalPotentialwCutoff(amp=mwbulge_amp, 
+                                                        alpha=mwbulge_alpha, 
+                                                        rc=mwbulge_rc)
+    mwdisk = potential.MiyamotoNagaiPotential(amp=mwdisk_amp, a=mwdisk_a, 
+                                                b=mwdisk_b)
+    
+    return [mwbulge, mwdisk, trihalo]
+#def
+
 def make_halo_dsw(new_halo, t_form=-9, t_steady=-8, mwhalo=None, mwdisk=None, 
                     mwbulge=None):
     '''make_halo_dsw
