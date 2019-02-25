@@ -4,7 +4,8 @@
 # AUTHOR - James Lane
 # PROJECT - AST1501
 # CONTENTS:
-# 1 - stround
+# - stround
+# - 
 # 
 # ----------------------------------------------------------------------------
 
@@ -35,3 +36,34 @@ def stround(num,nplace):
     return round(num,nplace)
 #def
     
+# ----------------------------------------------------------------------------
+
+def df_evaluator_write_params(logfile,params,param_names):
+    '''df_evaluator_write_params:
+    
+    Write the parameters used in the DF evaluation to file.
+    
+    Args:
+        logfile (open text file)
+        params (N-array) A list of parameters to write to file.
+        param_names (N-array) A list of parameter names to write to file.
+        
+    
+    '''
+    logfile.write('Parameters\n')
+    logfile.write('==========\n\n')
+    
+    n_params = len(params)
+    for i in range(n_params):    
+        logfile.write(param_names[i]+': ')
+        if isinstance( params[i], list ):
+            for p in params[i]:
+                logfile.write(str(p)+', ')
+            ###p
+        else:
+            logfile.write(str(params[i])+', ')
+        ##ie
+        logfile.write('\n')
+    logfile.write('==========\n')
+    return logfile
+#def
