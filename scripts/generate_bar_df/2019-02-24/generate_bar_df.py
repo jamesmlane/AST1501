@@ -70,7 +70,7 @@ _GRIDX, _GRIDY = ast1501.df.generate_grid_rect( _XRANGE,
 
 
 # Distribution Function
-_VPARMS = [20,20,8,8]   # dvT,dvR,nsigma,nsigma
+_VPARMS = [5,5,8,8]   # dvT,dvR,nsigma,nsigma
 _SIGMAPARMS = ast1501.df.get_vsigma()
 _SIGMA_VR,_SIGMA_VT,_SIGMA_VZ = _SIGMAPARMS
 _SCALEPARMS =  ast1501.df.get_scale_lengths()
