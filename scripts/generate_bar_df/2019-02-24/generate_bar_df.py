@@ -40,8 +40,8 @@ import ast1501.util
 _NCORES = 10                         # Number of cores to use
 _LOGFILE = open('./log.txt','w')    # Name of the output log file
 _VERBOSE = 0                        # Degree of verbosity
-_PLOT_DF = False                    # Plot the output DF
-_COORD_IN_XY = False                # Input coordinate grid in XY or polar?
+_PLOT_DF = True                    # Plot the output DF
+_COORD_IN_XY = True                # Input coordinate grid in XY or polar?
 
 # Timing
 _T_EVOLVE = 2
@@ -64,9 +64,10 @@ _DX = 0.75
 _DY = 0.75
 _GRIDX, _GRIDY = ast1501.df.generate_grid_rect( _XRANGE,
                                                 _YRANGE,
-                                                _DR,
-                                                _DPHI,
-                                                return_polar_coords=True)
+                                                _DX,
+                                                _DY,
+                                                return_polar_coords=False)
+
 
 # Distribution Function
 _VPARMS = [20,20,8,8]   # dvT,dvR,nsigma,nsigma
@@ -95,18 +96,18 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 ### Evaluate the DF
 
 # Write the parameters in the log
-_LOGFILE.write(str(len(_GRIDR))+' evaluations\n')
-write_params = [_NCORES,_TIMES,_RRANGE,_PHIRANGE,_DR,_DPHI,_VPARMS,
+_LOGFILE.write(str(len(_GRIDX))+' evaluations\n')
+write_params = [_NCORES,_TIMES,_XRANGE,_YRANGE,_DX,_DY,_VPARMS,
                 _SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
-write_param_names = ['NCORES','TIMES','RRANGE','PHIRANGE','DR',
-                     'DPHI','VPARMS','SIGMAPARMS','SCALEPARMS','EVAL_THRESH']
+write_param_names = ['NCORES','TIMES','XRANGE','YRANGE','DX',
+                     'DY','VPARMS','SIGMAPARMS','SCALEPARMS','EVAL_THRESH']
 _LOGFILE = ast1501.util.df_evaluator_write_params(_LOGFILE,write_params,
                                                     write_param_names)
 
 # Run the program
 t1 = time.time()
-results = ast1501.df.evaluate_df_polar_parallel(_GRIDR, 
-                                                _GRIDPHI, 
+results = ast1501.df.evaluate_df_polar_parallel(_GRIDX, 
+                                                _GRIDY, 
                                                 _POT, 
                                                 _QDF, 
                                                 _VPARMS, 
