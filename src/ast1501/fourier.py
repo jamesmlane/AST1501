@@ -117,8 +117,7 @@ def psd2d(image,pad=True):
                                                         image.shape[1])))
                                                         
     #Calculate the periodogram estimate of the power spectrum
-    ret= np.abs(image_fft)**2.\
-        +np.abs(image_fft[::-1,::-1])**2.
+    ret = (np.abs(image_fft)**2.) + (np.abs(image_fft[::-1,::-1])**2.)
         
     # Return the results
     if pad:
