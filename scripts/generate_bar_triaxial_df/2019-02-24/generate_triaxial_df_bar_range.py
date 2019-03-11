@@ -8,7 +8,8 @@
 
 ### Docstrings and metadata:
 ''' Script to run parallelized triaxial DF evaluation with a bar over a 
-range of halo b values.
+range of halo b values. Halo values run are b={0.9,0.95,1.05,1.1} in 
+two separate runs.
 '''
 __author__ = "James Lane"
 
@@ -33,14 +34,14 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 2                         # Number of cores to use
-_LOGFILE = open('./log.txt','w')    # Name of the output log file
+_NAMES = ['_b105','_b110']	    # Trailing names
+_NCORES = 10                        # Number of cores to use
 _VERBOSE = 0                        # Degree of verbosity
 _PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
 
 # Halo parameters
-_HALO_B_RANGE = [0.9,0.95,1.05,1.1]
+_HALO_B_RANGE = [0.9,0.95]
 _HALO_A, _HALO_C, _HALO_PHI = [1.0,1.0,0.0]
 
 # Timing
@@ -49,7 +50,7 @@ _TIMES = -np.array([0,_T_EVOLVE]) * apu.Gyr
 
 # Spatial
 _RRANGE = [5,15]                    # Range in galactocentric R
-_PHIRANGE = [-np.pi,np.pi]          # Range in galactocentric phi
+_PHIRANGE = [-np.pi/2,np.pi/2]      # Range in galactocentric phi
 _DR = 1.0                           # Bin size in R
 _DPHI = 1.0                         # Bin size in Phi (arc in kpc)
 _GRIDR, _GRIDPHI = ast1501.df.generate_grid_radial( _RRANGE, 
@@ -89,7 +90,7 @@ evaluation_counter = 0
 for i in range( len( _HALO_B_RANGE ) ):
 
     # Make the log file
-    _LOGFILE = open('./log'+str(evaluation_counter)+'.txt','w')
+    _LOGFILE = open('./log'+_NAMES[i]+'.txt','w')
 
     # Make the potential
     _HALO_B = _HALO_B_RANGE[i]
@@ -135,7 +136,7 @@ for i in range( len( _HALO_B_RANGE ) ):
     _LOGFILE.close()
 
     # Write results to file
-    np.save('data'+str(evaluation_counter)+'.npy',np.array(results))
+    np.save('data'+_NAMES[i]+'.npy',np.array(results))
     
     # Count up
     evaluation_counter += 1
