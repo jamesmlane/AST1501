@@ -84,7 +84,7 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 ### Evaluate the DF
 
 # Write the parameters in the log
-_LOGFILE.write(str(len(_GRIDX))+' evaluations\n')
+_LOGFILE.write(str(len(_GRIDR))+' evaluations\n')
 write_params = [_NCORES,_TIMES,_RRANGE,_RRANGE,_DR,_DPHI,_VPARMS,
                 _SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
 write_param_names = ['NCORES','TIMES','RRANGE','PHIRANGE','DR',
