@@ -321,5 +321,128 @@ def find_closed_orbit(pot,Lz,rtol=0.001,R0=1.0,vR0=0.0,plot_loop=False):
     return o
 #def
 
-
-
+class kuijken_potential():
+    '''kuijken_potential:
+    
+    Args:
+        
+        
+    Returns:
+        
+    '''
+    
+    def __init__(self,b_a=1.0, phib=0, R0=8.0, p=None, alpha=None, 
+                 psi_0=None, v_c=None):
+        '''__init__:
+        
+        Args:
+            b_a (float) - Axis ratio in the plane of the disk. [1.0]
+            phib (float) - secondary axis angle [0.0]
+            R0 (float) - Scale radius [8.0]
+            p (float) - Psi amplitude power law index
+            alpha (float) - Radial power law index
+            psi_0 (float) - Psi amplitude at the scale radius
+            phib (float) - Bar angle
+        '''
+        
+        # First calculate all the values using b/a and the profiles fitted 
+        # with MWPotential2014
+        
+        if p == None:
+            if b_a >= 1.0:
+                p = self._offset_power_law(b_a, 0.152, -0.99, 1.169, 0.524)
+            ##fi
+            
+            if b_a < 1.0:
+                p = self._offset_power_law(b_a, 33.695, -0.178, 0.0034, -33.16)
+            ##fi
+        ##fi
+        
+        if alpha == None:
+            alpha = self._power_law(b_a, 0.279, 0.141, -0.558)
+        ##fi
+            
+        if psi_0 == None:
+            psi_0 = self._power_law(b_a, 1730.979, 2.053, -1731.046)
+        ##fi
+            
+        if v_c == None:
+            v_c = self._power_law(b_a, 296.477, 0.182, -126.565)
+        ##fi
+        
+        # Must be set
+        self.b_a = b_a
+        self.R0 = R0
+        self.phib = phib
+        
+        # Derived
+        self.p = p
+        self.alpha = alpha
+        self.psi_0 = psi_0
+        self.v_c = v_c
+    #def
+    
+    def _power_law(self,x,A,k,d):
+        return A*np.power(x,k)+d
+    #def
+    
+    def _offset_power_law(self,x,A,c,k,d):
+        return A*np.power(x+c,k)+d
+    #def
+    
+    def psi(self,R):
+        '''psi:
+        
+        Psi function.
+        
+        Args:
+            R (float) - Galactocentric cylindrical radius
+        
+        Returns:
+            Psi(R)
+        '''
+        return self.psi_0 * np.power( R / self.R0, self.p )
+    #def
+    
+    def epsilon_psi(self,R):
+        '''epsilon_psi:
+        
+        Epsilon function.
+        
+        Args:
+            R (float) - Galactocentric cylindrical radius
+        
+        Returns:
+            epsilon_psi (float) - epsilon function 
+            
+        '''
+        return 2 * self.psi(R) / ( self.v_c**2 )
+    #def
+    
+    def kuijken_vr(self,R,phi):
+        '''kuijken_vr:
+        
+        Args:
+            R (float) - Galactocentric cylindrical radius
+            phi (float) - Galactocentric cylindrical radius 
+        
+        Returns:
+            vr (float) - Radial velocity fluctuation 
+        '''
+        e_psi = self.epsilon_psi(R)
+        return -( (1+0.5*self.p) / (1-self.alpha) ) * e_psi * self.v_c * np.sin( 2*( phi-self.phib ) )
+    #def
+    
+    def kuijken_vt(self,R,phi):
+        '''kuijken_vt:
+        
+        Args:
+            R (float) - Galactocentric cylindrical radius
+            phi (float) - Galactocentric cylindrical radius
+        
+        Returns:
+            vt (float) - Tangential velocity fluctuation
+        '''
+        e_psi = self.epsilon_psi(R)
+        return -( ( 1 + 0.25*self.p*( 1 + self.alpha ) ) / ( 1 - self.alpha ) ) * e_psi * self.v_c * np.cos( 2*( phi-self.phib ) )
+    #def
