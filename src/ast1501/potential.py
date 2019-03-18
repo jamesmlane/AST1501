@@ -331,8 +331,8 @@ class kuijken_potential():
         
     '''
     
-    def __init__(self,b_a=1.0, phib=0, R0=8.0, p=None, alpha=None, 
-                 psi_0=None, v_c=None):
+    def __init__(self, b_a=1.0, phib=0, R0=8.0, p=None, alpha=None, 
+                 psi_0=None, v_c=None, is2Dinfer=False):
         '''__init__:
         
         Args:
@@ -343,43 +343,44 @@ class kuijken_potential():
             alpha (float) - Radial power law index
             psi_0 (float) - Psi amplitude at the scale radius
             phib (float) - Bar angle
+            is2Dinfer (bool) - Infer potential properties based on 2D (R and b) 
+                or 1D (just b)
         '''
         
         # First calculate all the values using b/a and the profiles fitted 
         # with MWPotential2014
         
-        if p == None:
-            if b_a >= 1.0:
-                p = self._offset_power_law(b_a, 0.152, -0.99, 1.169, 0.524)
-            ##fi
-            
-            if b_a < 1.0:
-                p = self._offset_power_law(b_a, 33.695, -0.178, 0.0034, -33.16)
-            ##fi
-        ##fi
-        
-        if alpha == None:
-            alpha = self._power_law(b_a, 0.279, 0.141, -0.558)
-        ##fi
-            
-        if psi_0 == None:
-            psi_0 = self._power_law(b_a, 1730.979, 2.053, -1731.046)
-        ##fi
-            
-        if v_c == None:
-            v_c = self._power_law(b_a, 296.477, 0.182, -126.565)
-        ##fi
+        # if p == None:
+        #     if b_a >= 1.0:
+        #         p = self._offset_power_law(b_a, 0.152, -0.99, 1.169, 0.524)
+        #     ##fi
+        # 
+        #     if b_a < 1.0:
+        #         p = self._offset_power_law(b_a, 33.695, -0.178, 0.0034, -33.16)
+        #     ##fi
+        # ##fi
+        # 
+        # if alpha == None:
+        #     alpha = self._power_law(b_a, 0.279, 0.141, -0.558)
+        # ##fi
+        # 
+        # if psi_0 == None:
+        #     psi_0 = self._power_law(b_a, 1730.979, 2.053, -1731.046)
+        # ##fi
+        # 
+        # if v_c == None:
+        #     v_c = self._power_law(b_a, 296.477, 0.182, -126.565)
+        # ##fi
         
         # Must be set
         self.b_a = b_a
         self.R0 = R0
         self.phib = phib
-        
-        # Derived
-        self.p = p
-        self.alpha = alpha
-        self.psi_0 = psi_0
-        self.v_c = v_c
+        self.is2Dinfer = is2Dinfer
+    #def
+    
+    def _double_power_law(self,R,b,A1,A2,k1,k2,d):
+        return A1*np.power(R,k1) + A2*np.power(b,k2) + d
     #def
     
     def _power_law(self,x,A,k,d):
@@ -388,6 +389,69 @@ class kuijken_potential():
     
     def _offset_power_law(self,x,A,c,k,d):
         return A*np.power(x+c,k)+d
+    #def
+    
+    def _get_v_c(self,R):
+        if self.is2Dinfer:
+            # Set parameters from kuijken_fit.ipynb
+            # A1, A2, k1, k2, d
+            params = [2.69889467e+01,2.95235000e+02,3.26001601e-01,
+                      1.88714756e-01,-1.79201675e+02]
+            v_c = self._double_power_law(R,self.b_a,*params)
+        else:
+            # Set parameters from kuijken_fit.ipynb
+            # A, k, d
+            params = [296.477, 0.182, -126.565]
+            v_c = self._power_law(self.b_a,*params)
+        return v_c
+    #def
+    
+    def _get_alpha(self,R):
+        if self.is2Dinfer:
+            # Set parameters from kuijken_fit.ipynb
+            # A1, A2, k1, k2, d
+            params = [-1.49984367e+02,2.36875055e-01,3.69210365e-04,
+                      1.60606290e-01,1.49588215e+02]
+            alpha = self._double_power_law(R,self.b_a,*params)
+        else:
+            # Set parameters from kuijken_fit.ipynb
+            # A, k, d
+            params = [0.279, 0.141, -0.558]
+            alpha = self._power_law(self.b_a,*params)
+        return alpha
+    #def
+    
+    def _get_psi0(self,R):
+        if self.is2Dinfer:
+            # Set parameters from kuijken_fit.ipynb
+            # A1, A2, k1, k2, d
+            params = [-1.77157188e+03,1.78311874e+03,-1.97068863e-03,
+                      2.06887401e+00,-1.94272099e+01]
+            psi0 = self._double_power_law(R,self.b_a,*params)
+        else:
+            params = [1730.979,2.053,-1741.046]
+            psi0 = self._power_law(self.b_a,*params)
+        return psi0
+    #def
+    
+    def _get_p(self,R):
+        if self.is2Dinfer:
+            # Set parameters from kuijken_fit.ipynb.
+            # A1, A2, k1, k2, d
+            params = [-9.55285852e+02,2.55131016e-01,3.56811498e-04,
+                      5.81101032e-01,9.55288745e+02]
+            p= self._double_power_law(R,self.b_a,*params)
+        else:
+            # Note this fit is for 1+p, so need to subtract 1
+            if self.b_a >= 1.0:
+                params = [0.152, -0.99, 1.169, 0.524]
+                p = self._offset_power_law(self.b_a, *params)-1
+            ##fi
+            if self.b_a < 1.0:
+                params = [33.695, -0.178, 0.0034, -33.16]
+                p = self._offset_power_law(self.b_a, *params)-1
+            ##fi
+        return p
     #def
     
     def psi(self,R):
@@ -401,7 +465,9 @@ class kuijken_potential():
         Returns:
             Psi(R)
         '''
-        return self.psi_0 * np.power( R / self.R0, self.p )
+        psi0 = self._get_psi0(R)
+        p = self._get_p(R)
+        return psi0 * np.power( R / self.R0, p )
     #def
     
     def epsilon_psi(self,R):
@@ -416,7 +482,8 @@ class kuijken_potential():
             epsilon_psi (float) - epsilon function 
             
         '''
-        return 2 * self.psi(R) / ( self.v_c**2 )
+        v_c = self._get_v_c(R)
+        return 2 * self.psi(R) / ( v_c**2 )
     #def
     
     def kuijken_vr(self,R,phi):
@@ -430,7 +497,10 @@ class kuijken_potential():
             vr (float) - Radial velocity fluctuation 
         '''
         e_psi = self.epsilon_psi(R)
-        return -( (1+0.5*self.p) / (1-self.alpha) ) * e_psi * self.v_c * np.sin( 2*( phi-self.phib ) )
+        p = self._get_p(R)
+        alpha = self._get_alpha(R)
+        v_c = self._get_v_c(R)
+        return -( (1+0.5*p) / (1-alpha) ) * e_psi * v_c * np.sin( 2*( phi-self.phib ) )
     #def
     
     def kuijken_vt(self,R,phi):
@@ -444,5 +514,8 @@ class kuijken_potential():
             vt (float) - Tangential velocity fluctuation
         '''
         e_psi = self.epsilon_psi(R)
-        return -( ( 1 + 0.25*self.p*( 1 + self.alpha ) ) / ( 1 - self.alpha ) ) * e_psi * self.v_c * np.cos( 2*( phi-self.phib ) )
+        p = self._get_p(R)
+        alpha = self._get_alpha(R)
+        v_c = self._get_v_c(R)
+        return -( ( 1 + 0.25*p*( 1 + alpha ) ) / ( 1 - alpha ) ) * e_psi * v_c * np.cos( 2*( phi-self.phib ) )
     #def
