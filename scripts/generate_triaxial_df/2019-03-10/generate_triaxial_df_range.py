@@ -8,7 +8,7 @@
 
 ### Docstrings and metadata:
 ''' Script to run parallelized triaxial DF evaluation for a range of b values:
-
+0.7 through 1.3 with 0.05 spacing
 '''
 __author__ = "James Lane"
 
@@ -33,7 +33,7 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 10                        # Number of cores to use
+_NCORES = 12                        # Number of cores to use
 _VERBOSE = 0                        # Degree of verbosity
 _PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
@@ -85,7 +85,7 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 # Counter for evaluations
 evaluation_counter = 0
 
-for i in range( len( _HALO_B_RANGE ) )
+for i in range( len( _HALO_B_RANGE ) ):
 
     # Make the log file
     _LOGFILE = open('./log'+str(evaluation_counter)+'.txt','w')
@@ -99,7 +99,7 @@ for i in range( len( _HALO_B_RANGE ) )
 
     # Write the parameters in the log
     _LOGFILE.write(str(len(_GRIDR))+' evaluations')
-    write_params = [_NCORES,_TIMES,_HALO_T_FORM,_HALO_T_STEADY,_HALO_A,_HALO_B,
+    write_params = [_NCORES,_TIMES,_HALO_T_FORM,_HALO_T_STEADY,_HALO_A,_HALO_B_RANGE[i],
                     _HALO_C,_HALO_PHI,_RRANGE,_PHIRANGE,_DR,_DPHI,_VPARMS,
                     _SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
     write_param_names = ['NCORES','TIMES','HALO_T_FORM','HALO_T_STEADY','HALO_A',
