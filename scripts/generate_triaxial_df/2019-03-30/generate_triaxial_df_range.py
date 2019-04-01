@@ -8,7 +8,9 @@
 
 ### Docstrings and metadata:
 ''' Script to run parallelized triaxial DF evaluation for a range of 
-parameters such as halo structural values.
+parameters such as halo structural values. Manually set the velocity 
+dispersion to 5 km/s to test whether the results are similar to the 
+MWPotential2014 + Kuijken formalism.
 '''
 __author__ = "James Lane"
 
@@ -58,9 +60,9 @@ _GRIDR, _GRIDPHI = ast1501.df.generate_grid_radial( _RRANGE,
                                                     delta_phi_in_arc=True )
 
 # Distribution Function
-_VPARMS = [20,20,8,8]   # dvT,dvR,nsigma,nsigma
+_VPARMS = [5,5,8,8]   # dvT,dvR,nsigma,nsigma
 _SIGMAPARMS = ast1501.df.get_vsigma()
-_SIGMA_VR,_SIGMA_VT,_SIGMA_VZ = [5.0,5.0,5.0] # _SIGMAPARMS
+_SIGMA_VR,_SIGMA_VT,_SIGMA_VZ = [5,5,5] # _SIGMAPARMS
 _SCALEPARMS =  ast1501.df.get_scale_lengths()
 _RADIAL_SCALE, _SIGMA_VR_SCALE, _SIGMA_VZ_SCALE = _SCALEPARMS
 _EVAL_THRESH = 0.0001   # DF evaluation threshold
@@ -86,7 +88,7 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 # Counter for evaluations
 evaluation_counter = 0
 
-for i in range( len( _HALO_B_RANGE ) )
+for i in range( len( _HALO_B_RANGE ) ):
 
     # Make the log file
     _LOGFILE = open('./log'+str(evaluation_counter)+'.txt','w')
@@ -100,7 +102,7 @@ for i in range( len( _HALO_B_RANGE ) )
 
     # Write the parameters in the log
     _LOGFILE.write(str(len(_GRIDR))+' evaluations')
-    write_params = [_NCORES,_TIMES,_HALO_T_FORM,_HALO_T_STEADY,_HALO_A,_HALO_B,
+    write_params = [_NCORES,_TIMES,_HALO_T_FORM,_HALO_T_STEADY,_HALO_A,_HALO_B_RANGE[i],
                     _HALO_C,_HALO_PHI,_RRANGE,_PHIRANGE,_DR,_DPHI,_VPARMS,
                     _SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
     write_param_names = ['NCORES','TIMES','HALO_T_FORM','HALO_T_STEADY','HALO_A',
