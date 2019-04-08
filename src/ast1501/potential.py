@@ -470,6 +470,24 @@ class kuijken_potential():
         return psi0 * np.power( R / self.R0, p )
     #def
     
+    def v_circ(self,R):
+        '''v_circ:
+        
+        Calculate the circular velocity
+        
+        Args:
+            R (float) - Galactocentric cylindrical radius
+        
+        Returns:
+            v_circ (float) - Circular velocity
+        
+        '''
+        
+        v_c = self._get_v_c(R)
+        alpha = self._get_alpha(R)
+        return np.power( R / self.R0, alpha ) * v_c
+    #def
+    
     def epsilon_psi(self,R):
         '''epsilon_psi:
         
@@ -482,8 +500,8 @@ class kuijken_potential():
             epsilon_psi (float) - epsilon function 
             
         '''
-        v_c = self._get_v_c(R)
-        return 2 * self.psi(R) / ( v_c**2 )
+        v_circ = self.v_circ(R)
+        return 2 * self.psi(R) / ( v_circ**2 )
     #def
     
     def kuijken_vr(self,R,phi):
@@ -499,8 +517,8 @@ class kuijken_potential():
         e_psi = self.epsilon_psi(R)
         p = self._get_p(R)
         alpha = self._get_alpha(R)
-        v_c = self._get_v_c(R)
-        return -( (1+0.5*p) / (1-alpha) ) * e_psi * v_c * np.sin( 2*( phi-self.phib ) )
+        v_circ = self.v_circ(R)
+        return -( (1+0.5*p) / (1-alpha) ) * e_psi * v_circ * np.sin( 2*( phi-self.phib ) )
     #def
     
     def kuijken_vt(self,R,phi):
@@ -516,6 +534,6 @@ class kuijken_potential():
         e_psi = self.epsilon_psi(R)
         p = self._get_p(R)
         alpha = self._get_alpha(R)
-        v_c = self._get_v_c(R)
-        return -( ( 1 + 0.25*p*( 1 + alpha ) ) / ( 1 - alpha ) ) * e_psi * v_c * np.cos( 2*( phi-self.phib ) )
+        v_circ = self._get_v_c(R)
+        return -( ( 1 + 0.25*p*( 1 + alpha ) ) / ( 1 - alpha ) ) * e_psi * v_circ * np.cos( 2*( phi-self.phib ) )
     #def
