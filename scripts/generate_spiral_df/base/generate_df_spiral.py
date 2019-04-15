@@ -34,21 +34,21 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 10                        # Number of cores to use
+_NCORES = 8                        # Number of cores to use
 _LOGFILE = open('./log.txt','w')    # Name of the output log file
 _VERBOSE = 0                        # Degree of verbosity
-_PLOT_DF = False                    # Plot the output DF
+_PLOT_DF = True                     # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
 
 # Timing
-_T_EVOLVE = 2
+_T_EVOLVE, _T_FORM, _T_STEADY = [10,-9,8]
 _TIMES = -np.array([0,_T_EVOLVE]) * apu.Gyr
 
 # Spatial
-_RRANGE = [5,7]                    # Range in galactocentric R
-_PHIRANGE = [-np.pi,np.pi]          # Range in galactocentric phi
-_DR = 2                             # Bin size in R
-_DPHI = 15                           # Bin size in Phi (arc in kpc)
+_RRANGE = [5,15]                    # Range in galactocentric R
+_PHIRANGE = [-np.pi/2,np.pi/2]      # Range in galactocentric phi
+_DR = 1.0                           # Bin size in R
+_DPHI = 1.0                         # Bin size in Phi (arc in kpc)
 _GRIDR, _GRIDPHI = ast1501.df.generate_grid_radial( _RRANGE, 
                                                     _PHIRANGE, 
                                                     _DR, 
@@ -56,7 +56,7 @@ _GRIDR, _GRIDPHI = ast1501.df.generate_grid_radial( _RRANGE,
                                                     delta_phi_in_arc=True )
 
 # Distribution Function
-_VPARMS = [20,20,8,8]   # dvT,dvR,nsigma,nsigma
+_VPARMS = [10,10,8,8]   # dvT,dvR,nsigma,nsigma
 _SIGMAPARMS = ast1501.df.get_vsigma()
 _SIGMA_VR,_SIGMA_VT,_SIGMA_VZ = _SIGMAPARMS
 _SCALEPARMS =  ast1501.df.get_scale_lengths()
@@ -69,8 +69,8 @@ _EVAL_THRESH = 0.0001   # DF evaluation threshold
 _SPIRAL_ARM_POT = potential.SpiralArmsPotential(N=4, amp=1.0, 
     phi_ref=np.pi/4, alpha=np.deg2rad(12.0), omega=0.79)
 _SPIRAL_ARM_POT_TDEP = potential.DehnenSmoothWrapperPotential(pot=_SPIRAL_ARM_POT, 
-    tform=-9*apu.Gyr, tsteady=8*apu.Gyr)
-_POT = [potential.MWPotential2014,_SPIRAL_ARM_TDEP]
+    tform=_T_FORM*apu.Gyr, tsteady=_T_STEADY*apu.Gyr)
+_POT = [potential.MWPotential2014,_SPIRAL_ARM_POT_TDEP]
 _AA = actionAngle.actionAngleAdiabatic( pot=potential.MWPotential2014, 
                                         c=True)
 _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc, 
@@ -87,10 +87,11 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 
 # Write the parameters in the log
 _LOGFILE.write(str(len(_GRIDR))+' evaluations\n')
-write_params = [_NCORES,_TIMES,_RRANGE,_PHIRANGE,_DR,_DPHI,_VPARMS,
-                _SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
-write_param_names = ['NCORES','TIMES','RRANGE','PHIRANGE','DR',
-                     'DPHI','VPARMS','SIGMAPARMS','SCALEPARMS','EVAL_THRESH']
+write_params = [_NCORES,_TIMES,_T_FORM,_T_STEADY,_RRANGE,_PHIRANGE,_DR,
+		_DPHI,_VPARMS,_SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
+write_param_names = ['NCORES','TIMES','TFORM','TSTEADY','RRANGE','PHIRANGE',
+		     'DR','DPHI','VPARMS','SIGMAPARMS','SCALEPARMS',
+		     'EVAL_THRESH']
 _LOGFILE = ast1501.util.df_evaluator_write_params(_LOGFILE,write_params,
                                                     write_param_names)
 
