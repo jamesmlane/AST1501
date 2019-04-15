@@ -332,7 +332,7 @@ class kuijken_potential():
     '''
     
     def __init__(self, b_a=1.0, phib=0, R0=8.0, p=None, alpha=None, 
-                 psi_0=None, v_c=None, is2Dinfer=False):
+                 psi_0=None, v_c=None, is2Dinfer=True):
         '''__init__:
         
         Args:
@@ -395,8 +395,8 @@ class kuijken_potential():
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
             # A1, A2, k1, k2, d
-            params = [2.69889467e+01,2.95235000e+02,3.26001601e-01,
-                      1.88714756e-01,-1.79201675e+02]
+            params = [ 4.78216823e+04, -8.07681598e+01, 4.05882213e-04, 
+                       -2.37986043e-01, -4.75617654e+04]
             v_c = self._double_power_law(R,self.b_a,*params)
         else:
             # Set parameters from kuijken_fit.ipynb
@@ -410,8 +410,8 @@ class kuijken_potential():
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
             # A1, A2, k1, k2, d
-            params = [-1.49984367e+02,2.36875055e-01,3.69210365e-04,
-                      1.60606290e-01,1.49588215e+02]
+            params = [ -7.41244033e+01, 2.64673977e+02, 4.27004574e-04, 
+                       2.59477216e-04, -1.90666816e+02]
             alpha = self._double_power_law(R,self.b_a,*params)
         else:
             # Set parameters from kuijken_fit.ipynb
@@ -425,8 +425,8 @@ class kuijken_potential():
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
             # A1, A2, k1, k2, d
-            params = [-1.77157188e+03,1.78311874e+03,-1.97068863e-03,
-                      2.06887401e+00,-1.94272099e+01]
+            params = [ 7.45313065e-01, 3.10535207e+03, -4.64140481e+01,  
+                       1.23030373e+00, -3.10639618e+03]
             psi0 = self._double_power_law(R,self.b_a,*params)
         else:
             params = [1730.979,2.053,-1741.046]
@@ -438,8 +438,8 @@ class kuijken_potential():
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb.
             # A1, A2, k1, k2, d
-            params = [-9.55285852e+02,2.55131016e-01,3.56811498e-04,
-                      5.81101032e-01,9.55288745e+02]
+            params = [ -0.54815577, -2.74992312, 0.34326494, -0.0691154, 
+                       4.31419703]
             p= self._double_power_law(R,self.b_a,*params)
         else:
             # Note this fit is for 1+p, so need to subtract 1
@@ -534,6 +534,35 @@ class kuijken_potential():
         e_psi = self.epsilon_psi(R)
         p = self._get_p(R)
         alpha = self._get_alpha(R)
-        v_circ = self._get_v_c(R)
+        v_circ = self.v_circ(R)
         return -( ( 1 + 0.25*p*( 1 + alpha ) ) / ( 1 - alpha ) ) * e_psi * v_circ * np.cos( 2*( phi-self.phib ) )
     #def
+#cls
+
+def make_cos2_power_law(phi0, p, alpha, vc, phib=0*apu.radian, m=2):
+    '''make_cos2_power_law:
+    
+    Make the cosmphi + power law potential that will mimic the explicit form 
+    of the Kuijken+Tremaine potential
+    
+    Args:
+        
+    
+    Returns:
+        
+    '''
+    
+    # First equate the properties of the two potentials
+    cos2phi_amp = 1.0
+    cos2phi_R1 = 8.0*apu.kpc
+    cos2phi_Rb = 1.0*apu.kpc
+    power_law_alpha = -2*alpha
+    power_law_r1 = 8.0*apu.kpc
+    power_law_amp = (power_law_r1.value**3) * (vc**2) / (2*alpha)
+    
+    cos2phi_pot = potential.CosmphiDiskPotential( amp=cos2phi_amp, phio=phi0, 
+        phib=phib, m=m, p=p, r1=cos2phi_R1, rb=cos2phi_Rb )
+    power_law_pot = potential.PowerSphericalPotential( amp=power_law_amp, 
+        alpha=power_law_alpha, r1=power_law_r1 )
+    
+    return [cos2phi_pot, power_law_pot]
