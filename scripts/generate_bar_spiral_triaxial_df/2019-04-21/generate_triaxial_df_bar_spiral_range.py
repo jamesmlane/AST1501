@@ -37,7 +37,7 @@ _NAMES = ['_b090','_b095']          # Names
 _NCORES = 10                        # Number of cores to use
 _LOGFILE = open('./log.txt','w')    # Name of the output log file
 _VERBOSE = 0                        # Degree of verbosity
-_PLOT_DF = True                     # Plot the output DF
+_PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
 
 # Halo parameters
@@ -90,7 +90,7 @@ evaluation_counter = 0
 for i in range( len( _HALO_B_RANGE ) ):
 
     # Make the log file
-    _LOGFILE = open('./log'+str(evaluation_counter)+'.txt','w')
+    _LOGFILE = open('./log'+_NAMES[i]+'.txt','w')
 
     # Make the potential
     _HALO_B = _HALO_B_RANGE[i]
