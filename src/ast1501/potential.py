@@ -332,7 +332,7 @@ class kuijken_potential():
     '''
     
     def __init__(self, b_a=1.0, phib=0, R0=8.0, p=None, alpha=None, 
-                 psi_0=None, v_c=None, is2Dinfer=True):
+                 psi_0=None, v_c=None, is2Dinfer=False):
         '''__init__:
         
         Args:
@@ -344,7 +344,7 @@ class kuijken_potential():
             psi_0 (float) - Psi amplitude at the scale radius
             phib (float) - Bar angle
             is2Dinfer (bool) - Infer potential properties based on 2D (R and b) 
-                or 1D (just b)
+                or 1D (just b) [False]
         '''
         
         # First calculate all the values using b/a and the profiles fitted 
@@ -391,6 +391,10 @@ class kuijken_potential():
         return A*np.power(x+c,k)+d
     #def
     
+    def _third_order_poly(self,x,A,B,C,D):
+        return A*np.power(x,3)+B*np.power(x,2)+C*x+D
+    #def
+    
     def _get_v_c(self,R):
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
@@ -401,8 +405,8 @@ class kuijken_potential():
         else:
             # Set parameters from kuijken_fit.ipynb
             # A, k, d
-            params = [296.477, 0.182, -126.565]
-            v_c = self._power_law(self.b_a,*params)
+            params = [7.05801933,-33.01486635,62.73846391,182.5000245]
+            v_c = self._third_order_poly(self.b_a,*params)
         return v_c
     #def
     
@@ -416,8 +420,8 @@ class kuijken_potential():
         else:
             # Set parameters from kuijken_fit.ipynb
             # A, k, d
-            params = [0.279, 0.141, -0.558]
-            alpha = self._power_law(self.b_a,*params)
+            params = [0.03308258,-0.15579813,0.30111694,-0.28035999]
+            alpha = self._third_order_poly(self.b_a,*params)
         return alpha
     #def
     
@@ -429,8 +433,8 @@ class kuijken_potential():
                        1.23030373e+00, -3.10639618e+03]
             psi0 = self._double_power_law(R,self.b_a,*params)
         else:
-            params = [1730.979,2.053,-1741.046]
-            psi0 = self._power_law(self.b_a,*params)
+            params = [-1174.4162675,3971.9089045,-684.64660765,-2113.71480391]
+            psi0 = self._third_order_poly(self.b_a,*params)
         return psi0
     #def
     
@@ -442,15 +446,8 @@ class kuijken_potential():
                        4.31419703]
             p= self._double_power_law(R,self.b_a,*params)
         else:
-            # Note this fit is for 1+p, so need to subtract 1
-            if self.b_a >= 1.0:
-                params = [0.152, -0.99, 1.169, 0.524]
-                p = self._offset_power_law(self.b_a, *params)-1
-            ##fi
-            if self.b_a < 1.0:
-                params = [33.695, -0.178, 0.0034, -33.16]
-                p = self._offset_power_law(self.b_a, *params)-1
-            ##fi
+            params = [0.06929522,-0.31220909,0.59907812,0.02555314]
+            psi0 = self._third_order_poly(self.b_a,*params)
         return p
     #def
     
@@ -566,3 +563,21 @@ def make_cos2_power_law(phi0, p, alpha, vc, phib=0*apu.radian, m=2):
         alpha=power_law_alpha, r1=power_law_r1 )
     
     return [cos2phi_pot, power_law_pot]
+#def
+
+def make_Hunt18_LongSlowBar():
+    
+    # From Hunt & Bovy 2018 pg. 4 we know:
+    # Radius of the bar is 5 kpc
+    # Pattern speed of the bar is 1.3 times the local pattern speed
+    
+    OmegaB=1.3
+    RB = 5
+    
+    # Calculate the radius of corotation
+    ROLR = potential.lindbladR(potential.MWPotential2014, OmegaP=OmegaB, 
+                               m='corotation')
+    
+    
+    
+#def
