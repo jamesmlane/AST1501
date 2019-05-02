@@ -1228,3 +1228,32 @@ def get_scale_lengths(source='default'):
 #def
 
 # ----------------------------------------------------------------------------
+
+def make_default_MWPotential2014_qdf():
+    '''make_default_MWPotential2014_qdf:
+    
+    Generate the default QDF for MWPotential2014 
+    
+    Args: 
+        source (float) - Where do the values for the scale heights come 
+            from. ['default']
+    
+    Returns:
+        lengths (3-array) - Scale length for radial, radial velocity dispersion, 
+            and vertical velocity dispersion
+    '''
+    svr,svt,svz = get_vsigma() # By default these are 30, 20, and 20 km/s
+    r_scale,vr_scale,vz_scale = get_scale_lengths() # These are 2, 9.8, 7.6 kpc
+    aA = actionAngle.actionAngleAdiabatic( pot=potential.MWPotential2014, 
+                                           c=True)
+    qdf = df.quasiisothermaldf(hr= r_scale*apu.kpc, 
+                               sr= svr*(apu.km/apu.s),
+                               sz= svz*(apu.km/apu.s),
+                               hsr= vr_scale*(apu.kpc), 
+                               hsz= vz_scale*(apu.kpc),
+                               pot= potential.MWPotential2014, 
+                               aA= aA)
+    return qdf
+#def
+
+# ----------------------------------------------------------------------------
