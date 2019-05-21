@@ -84,7 +84,7 @@ class LinearModel():
                  phi_lims=None, phi_bin_size=None, phib_lims=None, 
                  phib_bin_size=None, phiB=None, bs_sample_vR=None, 
                  bs_sample_vT=None, prior_var_arr=[25,np.inf,25,np.inf], 
-                 n_iterate=5, n_bs=100, use_velocities=['vR','vT'], 
+                 n_iterate=5, n_bs=1000, use_velocities=['vR','vT'], 
                  force_yint_zero_vR=True, vT_prior_type='df', 
                  vT_prior_offset=0):
         
@@ -198,6 +198,9 @@ class LinearModel():
         df_prior_R, df_prior_vT = np.load(df_prior_path)
         self.df_prior_R = df_prior_R
         self.df_prior_vT = df_prior_vT
+        self.rotcurve_prior_R = np.arange(5,15,0.01)
+        self.rotcurve_prior_vT = potential.vcirc(potential.MWPotential2014, 
+            R=self.rotcurve_prior_R)
         # Type of prior for vT?
         self.vT_prior_type = vT_prior_type
         # Arbitrary offset for vT
@@ -227,6 +230,20 @@ class LinearModel():
             self.n_velocities=2
         ##ie
         
+        # Declare single velocity properties based on whether we will use 
+        # vR or vT for ease of use throughout the class
+        if self.n_velocities==1:
+            if self.use_vR:
+                self.bs_sample_1v = bs_sample_vR
+                self.trig_fn_1v = np.sin
+                self.vel_1v = 'vR'
+            if self.use_vT:
+                self.bs_sample_1v = bs_sample_vT
+                self.trig_fn_1v = np.cos
+                self.vel_1v = 'vT'
+            ##fi
+        ##fi
+        
         # Declare whether vR will be forced to be 0
         self.force_yint_zero_vR=force_yint_zero_vR
         
@@ -246,20 +263,37 @@ class LinearModel():
         results_arr = self.run_iterating_linear_model(update_results=True)
         
         # Set a few properties
+        self.results_arr = results_arr
         latest_results = results_arr[-1]
-        self.b_vR = latest_results[6][:,1]
-        self.m_vR = latest_results[7][:,1]
-        self.b_vT = latest_results[6][:,0]
-        self.m_vT = latest_results[7][:,0]
-        self.b_err_vR = latest_results[8][:,1]
-        self.m_err_vR = latest_results[9][:,1]
-        self.b_err_vT = latest_results[8][:,0]
-        self.m_err_vT = latest_results[9][:,0]
-        
-        if self.force_phiB == False:
-            self.phiB = latest_results[5]
+        if self.n_velocities == 2:
+            self.b_vR = latest_results[6][:,1]
+            self.m_vR = latest_results[7][:,1]
+            self.b_vT = latest_results[6][:,0]
+            self.m_vT = latest_results[7][:,0]
+            self.b_err_vR = latest_results[8][:,1]
+            self.m_err_vR = latest_results[9][:,1]
+            self.b_err_vT = latest_results[8][:,0]
+            self.m_err_vT = latest_results[9][:,0]
+        if self.n_velocities == 1:
+            if self.use_vR:
+                self.b_vR = latest_results[3]
+                self.m_vR = latest_results[4]
+                self.b_err_vR = latest_results[5]
+                self.m_err_vR = latest_results[6]
+            if self.use_vT:
+                self.b_vT = latest_results[3]
+                self.m_vT = latest_results[4]
+                self.b_err_vT = latest_results[5]
+                self.m_err_vT = latest_results[6]
+            ##fi
         ##fi
-        
+        if self.force_phiB == False:
+            if self.n_velocities == 2:
+                self.phiB = latest_results[5]
+            if self.n_velocities == 1:
+                self.phiB = latest_results[2]
+            ##fi
+        ##fi
     #def
     
     # Define getters and setters:
@@ -284,7 +318,6 @@ class LinearModel():
             bs_sample_vT (N-array) - Array of the vT bootstrap sample results for a 
                 single radius. It contains:
                 - R_bin_cent (float) - Radial bin center
-                - R_bin_size (float) - Radial bin size
                 - vT (float array) - vT as a function of phi
                 - vT_error (float array) - vT uncertainty as a function of phi
                 - phi_bin_phi (float array) - phi bin centers
@@ -493,7 +526,12 @@ class LinearModel():
 
         # Empty arrays to hold results and errors
         results_arr = []
-        extra_variance = np.zeros((self.n_R_bins,2))
+        
+        if self.n_velocities == 2:
+            extra_variance = np.zeros((self.n_R_bins,2))
+        else:
+            extra_variance = np.zeros(self.n_R_bins)
+        ##ie
         
         # Loop over all the times we are supposed to iterate the model
         for i in range( n_iterate ):
@@ -505,15 +543,25 @@ class LinearModel():
                 bs, ms, bs_err, ms_err, variance_model_data\
                 = self._iterate_noise_model_2_velocities(extra_variance)
             else:
-                raise Exception('Single velocities not supported yet')
+                likelihood, prod_likelihood, phib_max_likelihood, bs, ms,\
+                bs_err, ms_err, variance_model_data \
+                = self._iterate_noise_model_1_velocity(extra_variance)
+            ##ie
             
             # Update the variance
             extra_variance = variance_model_data
             
             # Construct the output array
-            output_results = [likelihood_vT, likelihood_vR, prod_likelihood_vT, 
-                prod_likelihood_vR, prod_likelihood_both, phib_max_likelihood, 
-                bs, ms, bs_err, ms_err, variance_model_data]
+            if self.n_velocities==2:
+                output_results = [likelihood_vT, likelihood_vR, 
+                    prod_likelihood_vT, prod_likelihood_vR, 
+                    prod_likelihood_both, phib_max_likelihood, 
+                    bs, ms, bs_err, ms_err, variance_model_data]
+            if self.n_velocities==1:
+                output_results = [likelihood, prod_likelihood, 
+                    phib_max_likelihood, bs, ms, bs_err, ms_err, 
+                    variance_model_data]
+            ##fi
             results_arr.append(output_results)
         ###i
         
@@ -540,12 +588,12 @@ class LinearModel():
         '''
         # Generate the prior
         if prior_style == 'vT':
-            if self.vT_prior_style=='df':
+            if self.vT_prior_type=='df':
                 which_bin = np.argmin( np.abs( R_bin_cent-self.df_prior_R ) )
                 b0 = self.df_prior_vT[which_bin]
-            elif self.vT_prior_style='rotcurve':
+            elif self.vT_prior_type=='rotcurve':
                 b0 = potential.vcirc(potential.MWPotential2014, R_bin_cent/8.0)*220.0
-            b0 += self.arb_vT_prior_offset
+            b0 += self.vT_prior_offset
             m0 = 0
             X0 = np.zeros((2,1)) # Make a column vector
             X0[0,0] = b0
@@ -710,6 +758,86 @@ class LinearModel():
         
     #def
     
+    def _iterate_noise_model_1_velocity(self, extra_variance):
+        '''_iterate_noise_model_1_velocity:
+        
+        Iterate over the calculation of the best-fitting linear model using 
+        a single velocity only, adding an empiraically derived variance to 
+        radial bins which do not match the overall trends particularly well.
+        
+        Args:
+            extra_variance (n_R x 2 array) - Extra variance for vR and vT as a 
+                function of radius.
+        
+        Returns:
+        
+        '''
+        
+        likelihood = np.ones( ( self.n_R_bins, self.n_phib_bins ) )
+        
+        # If vR is being used the assign the keyword to force the y-intercept 
+        # to 0
+        force_yint_zero = False
+        if self.use_vR:
+            force_yint_zero = self.force_yint_zero_vR
+        ##fi
+        
+        for j in range( self.n_R_bins ):
+            
+            # Calculate the log likelihood of the tangential and radial
+            # velocities as functions of phiB
+            lin_likelihood = \
+            self._calculate_phib_likelihood(self.bs_sample_1v[j], self.vel_1v,
+                                            self.trig_fn_1v,
+                                            extra_variance=extra_variance[j], 
+                                            force_yint_zero=force_yint_zero )
+            likelihood[j,:] = np.log(lin_likelihood)
+            
+        # Marginalize over all radii
+        prod_likelihood = np.sum(likelihood, axis=0)
+    
+        # Determine the best-fitting phib
+        phib_max_likelihood_arg = np.argmax( prod_likelihood )
+        phib_max_likelihood = self.phib_bin_cents[phib_max_likelihood_arg]
+        
+        # If we are forcing phiB then assign it
+        if self.force_phiB:
+            use_phiB = self.phiB
+        else:
+            use_phiB = phib_max_likelihood
+        ##ie
+
+        ms = np.zeros( self.n_R_bins )
+        bs = np.zeros( self.n_R_bins )
+        ms_err = np.zeros( self.n_R_bins )
+        bs_err = np.zeros( self.n_R_bins )
+        variance_model_data = np.zeros( self.n_R_bins )
+            
+        # Loop over radial bins, calculate the best-fitting m and b
+        for j in range( self.n_R_bins ):
+
+            # Now determine the best-fitting m and b
+            X, SIG_X = \
+            self._calculate_best_fit_m_b(self.R_bin_cents[j], use_phiB,
+                                         self.bs_sample_1v[j], self.vel_1v, 
+                                         self.trig_fn_1v, 
+                                         extra_variance=extra_variance[j], 
+                                         force_yint_zero=force_yint_zero )
+
+            bs[j] = X[0]
+            bs_err[j] = np.sqrt( SIG_X[0,0] )
+            ms[j] = X[1]
+            ms_err[j] = np.sqrt( SIG_X[1,1] )
+            
+            # Now calculate the standard deviation of the difference between the data and the model
+            variance_model_data[j] = \
+            self._calculate_variance_data_model(self.bs_sample_1v[j], ms[j], 
+                                                bs[j], use_phiB, self.trig_fn_1v)
+        ###j 
+        
+        return likelihood, prod_likelihood, phib_max_likelihood, \
+               bs, ms, bs_err, ms_err, variance_model_data
+        
     def _iterate_noise_model_2_velocities(self, extra_variance):
         '''_iterate_noise_model_2_velocities:
         
@@ -718,8 +846,6 @@ class LinearModel():
         radial bins which do not match the overall trends particularly well.
         
         Args:
-            force_yint_zero_vR (bool) - Force the y-intercept to be 0 for the 
-                vR velocities [True]
             extra_variance (n_R x 2 array) - Extra variance for vR and vT as a 
                 function of radius.
             
@@ -867,12 +993,9 @@ class LinearModel():
             # Add fiducials: bar, 0 line or tangential velocity curve
             axs[i].axvline( 25*(np.pi/180), linestyle='dotted', linewidth=1.0, 
                 color='Red')
-            if velocity_type == 'vR':
-                axs[i].axhline( 0, linestyle='dashed', color='Black', linewidth=1.0 )
-            if velocity_type == 'vT':
-                where_close_to_bin = np.argmin( np.abs( bin_R_cent-self.prior_R ) )
-                b0 = self.prior_vT[where_close_to_bin]
-                axs[i].axhline( b0, linestyle='dashed', color='Black', linewidth=1.0 )
+            X0, _ = self._generate_gaussian_prior_m_b(velocity_type, bin_R_cent)
+            b0 = X0[0,0]
+            axs[i].axhline( b0, linestyle='dashed', color='Black', linewidth=1.0 )
                 
             # Annotate
             axs[i].annotate( r'$R_{cen}=$'+str(bin_R_cent)+' kpc', 
@@ -952,8 +1075,9 @@ class LinearModel():
             axs[i,1].axvline( 25*(np.pi/180), linestyle='dotted', linewidth=1.0, 
                 color='Red')
             axs[i,0].axhline( 0, linestyle='dashed', color='Black', linewidth=1.0 )
-            where_close_to_bin = np.argmin( np.abs( bin_R_cent-self.prior_R ) )
-            b0 = self.prior_vT[where_close_to_bin]
+            X0, _ = self._generate_gaussian_prior_m_b('vT', bin_R_cent)
+            b0 = X0[0,0]
+            axs[i,0].axhline( 0, linestyle='dashed', color='Black', linewidth=1.0 )
             axs[i,1].axhline( b0, linestyle='dashed', color='Black', linewidth=1.0 )
                 
             # Annotate
@@ -978,8 +1102,93 @@ class LinearModel():
         return fig, axs
     #def
     
-    def plot_m_r(self, fig=None, axs=None, plot_type='errorbar', plot_kws={}, 
-                    label_fs=12):
+    def plot_velocity_m_r(self, fig=None, axs=None, plot_type='errorbar', 
+                            plot_kws={}, label_fs=12, which_velocity=None):
+        '''plot_velocity_m_r:
+        
+        Plot both m and b as a functions of radius for either vR or vT
+        
+        Args:
+            fig (matplotlib figure object) - Figure object to use, if None then 
+                one will be created [None]
+            axs (matplotlib axs object) - Axs objects to use, if None then they 
+                will be created. Should be 2 length [None]
+            plot_type (string) - What type of plot to make? Either 'errorbar'm 
+                'scatter' or 'plot' ['errorbar']
+            plot_kws (dict) - Dictionary of properties to be passed to the 
+                plotting functions. Make sure commensurate with plot_type! [{}]
+        '''
+        
+        # Format for this figure is single column 2 axis
+        if fig is None or axs is None:
+            fig = plt.figure( figsize=(12,4) )
+            axs = fig.subplots( nrows=1, ncols=2 )
+        ##fi
+        
+        if which_velocity == None:
+            if self.n_velocities==2:
+                raise Exception('No velocity specified and 2 used.')
+            ##fi
+            which_velocity = self.vel_1v
+        ##fi
+        
+        if which_velocity == 'vR':
+            use_b = self.b_vR
+            use_m = self.m_vR
+            use_b_err = self.b_err_vR
+            use_m_err = self.m_err_vR
+        if which_velocity == 'vT':
+            use_b = self.b_vT
+            use_m = self.m_vT
+            use_b_err = self.b_err_vT
+            use_m_err = self.m_err_vT
+        ##fi
+        
+        # Plot
+        if plot_type == 'errorbar':
+            axs[0].errorbar( self.R_bin_cents, use_b, yerr=use_b_err, 
+                **plot_kws)
+            axs[1].errorbar( self.R_bin_cents, use_m, yerr=use_m_err, 
+                **plot_kws)
+        elif plot_type == 'plot':
+            axs[0].scatter( self.R_bin_cents, use_b, **plot_kws)
+            axs[1].scatter( self.R_bin_cents, use_m, **plot_kws)
+        elif plot_type == 'scatter':
+            axs[0].scatter( self.R_bin_cents, use_b, **plot_kws)
+            axs[1].scatter( self.R_bin_cents, use_m, **plot_kws)
+        ##fi
+        
+        # Labels and limits
+        if which_velocity == 'vR':
+            axs[0].set_ylabel(r'$b_{R}$ [km/s]', fontsize=label_fs)
+            axs[1].set_ylabel(r'$m_{R}$ [km/s]', fontsize=label_fs)
+        if which_velocity == 'vT':
+            axs[0].set_ylabel(r'$b_{T}$ [km/s]', fontsize=label_fs)
+            axs[1].set_ylabel(r'$m_{T}$ [km/s]', fontsize=label_fs)
+        ##fi
+        axs[0].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[1].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[0].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        axs[1].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        
+        # Add fiducials
+        axs[1].axhline(0, linestyle='dashed', color='Black')
+        if which_velocity == 'vR':
+            axs[0].axhline(0, linestyle='dashed', color='Black')
+        if which_velocity == 'vT':
+            if self.vT_prior_type=='df':    
+                axs[0].plot( self.df_prior_R, self.df_prior_vT,
+                    linestyle='dashed', color='Black' )
+            if self.vT_prior_type=='rotcurve':
+                axs[0].plot( self.rotcurve_prior_R, self.rotcurve_prior_vT,
+                    linestyle='dashed', color='Black')
+            ##fi
+        ##fi
+        
+        return fig, axs
+    
+    def plot_vRvT_m_r(self, fig=None, axs=None, plot_type='errorbar', 
+                        plot_kws={}, label_fs=12):
         '''plot_m_b:
         
         Plot both m and b as functions of radius for vT and vR profiles
@@ -996,7 +1205,7 @@ class LinearModel():
         '''
         
         # Format for this figure is 2x2
-        if fig is None and axs is None:
+        if fig is None or axs is None:
             fig = plt.figure( figsize=(12,6) ) 
             axs = fig.subplots( nrows=2, ncols=2 )
         ##fi
@@ -1042,10 +1251,73 @@ class LinearModel():
         axs[1,1].axhline(0, linestyle='dashed', color='Black')
         
         # Prior
-        axs[1,0].plot(self.prior_R, self.prior_vT, linestyle='dashed', 
-                        color='Black')
+        if self.vT_prior_type=='df':    
+            axs[1,0].plot( self.df_prior_R, self.df_prior_vT,
+                linestyle='dashed', color='Black' )
+        if self.vT_prior_type=='rotcurve':
+            axs[1,0].plot( self.rotcurve_prior_R, self.rotcurve_prior_vT,
+                linestyle='dashed', color='Black')
+        ##fi
         
         return fig, axs
+        
+    def sample_bootstrap(self, sample_phi=False):
+        '''sample_bootstrap:
+        
+        Sample from the bootstrap assuming its own errors. Return two 
+        bootstrap samples of the same shape (as vR and vT) with the 
+        same errors
+        
+        Args:
+            sample_phi (bool) - Draw samples from the phi distribution [False]
+            
+        '''
+        
+        # Make empty arrays
+        bs_mc_samp_vR = []
+        bs_mc_samp_vT = []
+        
+        # Loop over all radii
+        for i in range( self.n_R_bins ):
+            
+            n_phi_bins = len( self.bs_sample_vR[i][1] )
+            
+            # Loop over each phi bin
+            this_R_vR_samp = np.zeros(n_phi_bins)
+            this_R_vT_samp = np.zeros(n_phi_bins)
+            this_R_phi_samp = np.zeros(n_phi_bins)
+            
+            for j in range( n_phi_bins ):
+                
+                # Generate the samples for this phi bin
+                vR_samp = np.random.normal(loc=self.bs_sample_vR[i][1][j], 
+                    scale=self.bs_sample_vR[i][2][j], size=1).astype(float)[0]
+                this_R_vR_samp[j] = vR_samp
+                vT_samp = np.random.normal(loc=self.bs_sample_vT[i][1][j], 
+                    scale=self.bs_sample_vT[i][2][j], size=1).astype(float)[0]
+                this_R_vT_samp[j] = vT_samp
+                if sample_phi:
+                    phi_samp = np.random.normal(loc=self.bs_sample_vR[i][3][j],
+                        scale=self.bs_sample_vR[4][j], size=1).astype(float)[0]
+                else:
+                    phi_samp = self.bs_sample_vR[i][3][j]
+                ##ie
+                this_R_phi_samp[j] = phi_samp
+            ###j
+            
+            # Pack results
+            this_R = self.bs_sample_vR[i][0]
+            this_R_vR_err = self.bs_sample_vR[i][2]
+            this_R_vT_err = self.bs_sample_vT[i][2]
+            this_R_phi_err = self.bs_sample_vR[i][4]
+            bs_mc_samp_vR.append( [this_R,this_R_vR_samp,this_R_vR_err,
+                                   this_R_phi_samp,this_R_phi_err] )
+            bs_mc_samp_vT.append( [this_R,this_R_vT_samp,this_R_vT_err,
+                                   this_R_phi_samp,this_R_phi_err] )
+            
+        ###i
+        return bs_mc_samp_vR, bs_mc_samp_vT
+    #def
 #cls
 
 # def bootstrap_in_phi(gc_R, gc_phi, gc_vR, gc_vT, R_bin_cent, R_bin_size, 
