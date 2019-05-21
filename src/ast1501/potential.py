@@ -25,6 +25,9 @@ from matplotlib import pyplot as plt
 ## Astropy
 from astropy import units as apu
 
+## Scipy
+from scipy import interpolate
+
 ## galpy
 from galpy import orbit
 from galpy import potential
@@ -377,6 +380,12 @@ class kuijken_potential():
         self.R0 = R0
         self.phib = phib
         self.is2Dinfer = is2Dinfer
+        
+        # coefficients to third order polynomial fit to residuals for 1D 
+        # (b only) parameter inference case
+        coeffs_vR_1D, coeffs_vT_1D = self._residuals_1D_coeffs()
+        self.coeffs_vR_1D = coeffs_vR_1D
+        self.coeffs_vT_1D = coeffs_vT_1D
     #def
     
     def _double_power_law(self,R,b,A1,A2,k1,k2,d):
@@ -395,60 +404,125 @@ class kuijken_potential():
         return A*np.power(x,3)+B*np.power(x,2)+C*x+D
     #def
     
-    def _get_v_c(self,R):
+    def _get_v_c(self,R=None):
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
             # A1, A2, k1, k2, d
             params = [ 4.78216823e+04, -8.07681598e+01, 4.05882213e-04, 
                        -2.37986043e-01, -4.75617654e+04]
+            if R is None: raise Exception('R must be provided')
             v_c = self._double_power_law(R,self.b_a,*params)
         else:
             # Set parameters from kuijken_fit.ipynb
-            # A, k, d
+            # A, B, C, D
             params = [7.05801933,-33.01486635,62.73846391,182.5000245]
             v_c = self._third_order_poly(self.b_a,*params)
         return v_c
     #def
     
-    def _get_alpha(self,R):
+    def _get_alpha(self,R=None):
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
             # A1, A2, k1, k2, d
             params = [ -7.41244033e+01, 2.64673977e+02, 4.27004574e-04, 
                        2.59477216e-04, -1.90666816e+02]
+            if R is None: raise Exception('R must be provided')
             alpha = self._double_power_law(R,self.b_a,*params)
         else:
             # Set parameters from kuijken_fit.ipynb
-            # A, k, d
+            # A, B, C, D
             params = [0.03308258,-0.15579813,0.30111694,-0.28035999]
             alpha = self._third_order_poly(self.b_a,*params)
         return alpha
     #def
     
-    def _get_psi0(self,R):
+    def _get_psi0(self,R=None):
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb
             # A1, A2, k1, k2, d
             params = [ 7.45313065e-01, 3.10535207e+03, -4.64140481e+01,  
                        1.23030373e+00, -3.10639618e+03]
+            if R is None: raise Exception('R must be provided')
             psi0 = self._double_power_law(R,self.b_a,*params)
         else:
+            # Set parameters from kuijken_fit.ipynb
+            # A, B, C, D
             params = [-1174.4162675,3971.9089045,-684.64660765,-2113.71480391]
             psi0 = self._third_order_poly(self.b_a,*params)
         return psi0
     #def
     
-    def _get_p(self,R):
+    def _get_p(self,R=None):
         if self.is2Dinfer:
             # Set parameters from kuijken_fit.ipynb.
             # A1, A2, k1, k2, d
             params = [ -0.54815577, -2.74992312, 0.34326494, -0.0691154, 
                        4.31419703]
+            if R is None: raise Exception('R must be provided')
             p= self._double_power_law(R,self.b_a,*params)
         else:
             params = [0.06929522,-0.31220909,0.59907812,0.02555314]
-            psi0 = self._third_order_poly(self.b_a,*params)
+            p = self._third_order_poly(self.b_a,*params)
         return p
+    #def
+    
+    def _residuals_1D_coeffs(self):
+        '''_residuals_1D:
+        
+        Determine 3rd order residual coefficients for this b value
+        
+        Completely hard-coded assuming a 3rd order polynomial fit to the 
+        residuals of the 3rd order polynomial fit to the 1D (b only) inferred 
+        parameters of the Kuijken model.
+        '''
+        
+        # Load residual fit coefficients
+        coeffs = np.load('../8-radial_DF_generation/DF-kuijken_linear_fit_third_order_residuals.npy')
+        b_values = coeffs[0]
+        vR_coeffs = coeffs[[1,2,3,4]]
+        vT_coeffs = coeffs[[5,6,7,8]]
+        
+        # Interpolate based on the value of b
+        coeffs_out_vR = np.zeros(4)
+        coeffs_out_vT = np.zeros(4)
+        
+        # Loop over the 4 coefficients
+        for i in range(4):
+            
+            # Interpolation
+            fn_vR = interpolate.interp1d(b_values, vR_coeffs[i,:], kind='cubic')
+            coeffs_out_vR[i] = fn_vR(self.b_a)
+            fn_vT = interpolate.interp1d(b_values, vT_coeffs[i,:], kind='cubic')
+            coeffs_out_vT[i] = fn_vT(self.b_a)
+            
+        return coeffs_out_vR, coeffs_out_vT
+    #def
+    
+    def _calculate_1D_residuals(self, R, which_velocity):
+        '''_calculate_1D_residuals:
+        
+        Calculate residuals for the 1D parameter inference based on the 
+        3rd order polynomial fits to the Kuijken parameters, and a 3rd order 
+        polynomial fit to the residuals.
+        
+        Args:
+            which_velocity (string) - 'vR' or 'vT'
+        '''
+        
+        vT_residual_amp = self.coeffs_vT_1D[0]*np.power(R,3) + \
+                          self.coeffs_vT_1D[1]*np.power(R,2) + \
+                          self.coeffs_vT_1D[2]*R + \
+                          self.coeffs_vT_1D[3]
+        vR_residual_amp = self.coeffs_vR_1D[0]*np.power(R,3) + \
+                          self.coeffs_vR_1D[1]*np.power(R,2) + \
+                          self.coeffs_vR_1D[2]*R + \
+                          self.coeffs_vR_1D[3]
+        
+        if which_velocity=='vR':
+            return vR_residual_amp
+        if which_velocity=='vT':
+            return vT_residual_amp
+        ##fi
     #def
     
     def psi(self,R):
@@ -501,7 +575,7 @@ class kuijken_potential():
         return 2 * self.psi(R) / ( v_circ**2 )
     #def
     
-    def kuijken_vr(self,R,phi):
+    def kuijken_vr(self, R, phi, apply_correction=True):
         '''kuijken_vr:
         
         Args:
@@ -515,15 +589,19 @@ class kuijken_potential():
         p = self._get_p(R)
         alpha = self._get_alpha(R)
         v_circ = self.v_circ(R)
-        return -( (1+0.5*p) / (1-alpha) ) * e_psi * v_circ * np.sin( 2*( phi-self.phib ) )
+        vR_amp = -( (1+0.5*p) / (1-alpha) ) * e_psi * v_circ
+        if apply_correction:
+            vR_amp -= self._calculate_1D_residuals(R,which_velocity='vR')
+        return vR_amp * np.sin( 2*( phi-self.phib ) )
     #def
     
-    def kuijken_vt(self,R,phi):
+    def kuijken_vt(self, R, phi, apply_correction=True):
         '''kuijken_vt:
         
         Args:
             R (float) - Galactocentric cylindrical radius
             phi (float) - Galactocentric cylindrical radius
+            apply_correction = 
         
         Returns:
             vt (float) - Tangential velocity fluctuation
@@ -532,7 +610,10 @@ class kuijken_potential():
         p = self._get_p(R)
         alpha = self._get_alpha(R)
         v_circ = self.v_circ(R)
-        return -( ( 1 + 0.25*p*( 1 + alpha ) ) / ( 1 - alpha ) ) * e_psi * v_circ * np.cos( 2*( phi-self.phib ) )
+        vT_amp = -( ( 1 + 0.25*p*( 1 + alpha ) ) / ( 1 - alpha ) ) * e_psi * v_circ
+        if apply_correction:
+            vT_amp += self._calculate_1D_residuals(R,which_velocity='vT')
+        return vT_amp * np.cos(2*(phi-self.phib))
     #def
 #cls
 
