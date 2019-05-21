@@ -27,6 +27,7 @@ import sys, os, pdb, time, copy
 ## galpy and Astropy
 from astropy import units as apu
 from galpy import orbit, potential, df, actionAngle
+from galpy.util import bovy_conversion as gpconv
 
 ## Project specific
 sys.path.append('../../../src')
@@ -39,7 +40,7 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 12                        # Number of cores to use
+_NCORES = 8                         # Number of cores to use
 _LOGFILE = open('./log.txt','w')    # Name of the output log file
 _VERBOSE = 0                        # Degree of verbosity
 _PLOT_DF = False                    # Plot the output DF
@@ -67,14 +68,14 @@ _SIGMA_VR,_SIGMA_VT,_SIGMA_VZ = _SIGMAPARMS
 _SCALEPARMS =  ast1501.df.get_scale_lengths()
 _RADIAL_SCALE, _SIGMA_VR_SCALE, _SIGMA_VZ_SCALE = _SCALEPARMS
 _EVAL_THRESH = 0.0001   # DF evaluation threshold
-
 # ----------------------------------------------------------------------------
 
 ### Make potentials and DFs
 _BAR_POT_TEMP = potential.DehnenBarPotential()
 _BAR_POT = potential.DehnenBarPotential(omegab=_BAR_POT_TEMP._omegab, 
-    rb=_BAR_POT_TEMP._rb, Af=_BAR_POT_TEMP._af, tsteady=1*apu.Gyr, 
-    tform=-2*apu.Gyr)
+    rb=_BAR_POT_TEMP._rb, Af=_BAR_POT_TEMP._af, 
+    tsteady=1/gpconv.time_in_Gyr(ro=8,vo=220), 
+    tform=-2/gpconv.time_in_Gyr(ro=8,vo=220))
 _POT = [potential.MWPotential2014,_BAR_POT]
 _AA = actionAngle.actionAngleAdiabatic( pot=potential.MWPotential2014, 
                                         c=True)
