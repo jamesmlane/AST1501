@@ -21,6 +21,7 @@ import sys, os, pdb, time, copy
 ## galpy and Astropy
 from astropy import units as apu
 from galpy import orbit, potential, df, actionAngle
+from galpy.util import bovy_conversion as gpconv
 
 ## Project specific
 sys.path.append('../../../src')
