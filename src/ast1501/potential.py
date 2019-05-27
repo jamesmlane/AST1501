@@ -646,19 +646,18 @@ def make_cos2_power_law(phi0, p, alpha, vc, phib=0*apu.radian, m=2):
     return [cos2phi_pot, power_law_pot]
 #def
 
-def make_Hunt18_LongSlowBar():
+def make_LongSlowBar():
     
     # From Hunt & Bovy 2018 pg. 4 we know:
     # Radius of the bar is 5 kpc
-    # Pattern speed of the bar is 1.3 times the local pattern speed
+    # Pattern speed of the bar is 1.35 times the local pattern speed
     
-    OmegaB=1.3
-    RB = 5
+    OB=1.35
+    RB = 5/8
+    Af = 0.02
     
-    # Calculate the radius of corotation
-    ROLR = potential.lindbladR(potential.MWPotential2014, OmegaP=OmegaB, 
-                               m='corotation')
-    
-    
+    return potentiail.DehnenBarPotential(omegab=OB, rb=RB, Af=Af, 
+        tsteady=1/gpconv.time_in_Gyr(ro=8,vo=220), 
+        tform=2/gpconv.time_in_Gyr(ro=8,vo=220))
     
 #def
