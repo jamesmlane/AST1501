@@ -1198,7 +1198,7 @@ class LinearModel():
                 one will be created [None]
             axs (matplotlib axs object) - Axs objects to use, if None then they 
                 will be created. Should be 2x2 [None]
-            plot_type (string) - What type of plot to make? Either 'errorbar'm 
+            plot_type (string) - What type of plot to make? Either 'errorbar'
                 'scatter' or 'plot' ['errorbar']
             plot_kws (dict) - Dictionary of properties to be passed to the 
                 plotting functions. Make sure commensurate with plot_type! [{}]
@@ -1221,10 +1221,10 @@ class LinearModel():
             axs[1,1].errorbar( self.R_bin_cents, self.m_vT, yerr=self.m_err_vT, 
                 **plot_kws)
         elif plot_type == 'plot':
-            axs[0,0].scatter( self.R_bin_cents, self.b_vR, **plot_kws)
-            axs[0,1].scatter( self.R_bin_cents, self.m_vR, **plot_kws)
-            axs[1,0].scatter( self.R_bin_cents, self.b_vT, **plot_kws)
-            axs[1,1].scatter( self.R_bin_cents, self.m_vT, **plot_kws)
+            axs[0,0].plot( self.R_bin_cents, self.b_vR, **plot_kws)
+            axs[0,1].plot( self.R_bin_cents, self.m_vR, **plot_kws)
+            axs[1,0].plot( self.R_bin_cents, self.b_vT, **plot_kws)
+            axs[1,1].plot( self.R_bin_cents, self.m_vT, **plot_kws)
         elif plot_type == 'scatter':
             axs[0,0].scatter( self.R_bin_cents, self.b_vR, **plot_kws)
             axs[0,1].scatter( self.R_bin_cents, self.m_vR, **plot_kws)
