@@ -656,7 +656,7 @@ def make_LongSlowBar():
     RB = 5/8
     Af = 0.02
     
-    return potentiail.DehnenBarPotential(omegab=OB, rb=RB, Af=Af, 
+    return potential.DehnenBarPotential(omegab=OB, rb=RB, Af=Af, 
         tsteady=1/gpconv.time_in_Gyr(ro=8,vo=220), 
         tform=2/gpconv.time_in_Gyr(ro=8,vo=220))
     
