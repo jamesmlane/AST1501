@@ -44,7 +44,7 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 8                         # Number of cores to use
+_NCORES = 10                        # Number of cores to use
 _VERBOSE = 0                        # Degree of verbosity
 _PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
@@ -76,7 +76,9 @@ _EVAL_THRESH = 0.0001   # DF evaluation threshold
 ### Make potentials and DFs
 _LSBAR_RB = 5/8
 _LSBAR_OMEGAB_RANGE = np.array([35,40,45])/(220/8)
-_LSBAR_AF_RANGE = np.array([0.01,0.015,0.02,0.025])
+_LSBAR_OMEGAB_RANGE_STR = np.array(['35','40','45'])
+_LSBAR_AF_RANGE = np.array([0.010,0.015,0.020,0.025])
+_LSBAR_AF_RANGE_STR = np.array(['010','015','020','025'])
 _AA = actionAngle.actionAngleAdiabatic( pot=potential.MWPotential2014, 
                                         c=True)
 _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc, 
@@ -98,7 +100,8 @@ for i in range( len(_LSBAR_OMEGAB_RANGE) ):
     for j in range( len(_LSBAR_AF_RANGE) ):
         
         # Make the log file
-        _LOGFILE = open('./log'+str(evaluation_counter)+'.txt','w')
+        output_str = '_OMEGAB_'+_LSBAR_OMEGAB_RANGE_STR[i]+'_AF_'+_LSBAR_AF_RANGE_STR[j]
+        _LOGFILE = open('./log'+output_str+'.txt','w')
     
         # Make the potential
         _LSBAR_POT = potential.DehnenBarPotential(omegab=_LSBAR_OMEGAB_RANGE[i], 
@@ -109,7 +112,7 @@ for i in range( len(_LSBAR_OMEGAB_RANGE) ):
     
         # Write the parameters in the log
         _LOGFILE.write(str(len(_GRIDR))+' evaluations\n')
-        write_params = [_NCORES,_TIMES,_LSBAR_OMEGAB[i],_LSBAR_AF_RANGE[j],
+        write_params = [_NCORES,_TIMES,_LSBAR_OMEGAB_RANGE[i],_LSBAR_AF_RANGE[j],
                         _RRANGE,_PHIRANGE,_DR,_DPHI,_VPARMS,_SIGMAPARMS,
                         _SCALEPARMS,_EVAL_THRESH,]
         write_param_names = ['NCORES','TIMES','BAR_OMEGAB','BAR_AF','RRANGE',
@@ -120,20 +123,20 @@ for i in range( len(_LSBAR_OMEGAB_RANGE) ):
 
         # Run the program
         t1 = time.time()
-        # results = ast1501.df.evaluate_df_polar_parallel(_GRIDR, 
-        #                                                 _GRIDPHI, 
-        #                                                 _POT, 
-        #                                                 _QDF, 
-        #                                                 _VPARMS, 
-        #                                                 _TIMES, 
-        #                                                 _NCORES,
-        #                                                 sigma_vR=_SIGMA_VR,
-        #                                                 sigma_vT=_SIGMA_VT,
-        #                                                 evaluator_threshold=_EVAL_THRESH,
-        #                                                 plot_df=_PLOT_DF,
-        #                                                 coords_in_xy=_COORD_IN_XY,
-        #                                                 logfile=_LOGFILE,
-        #                                                 verbose=_VERBOSE)
+        results = ast1501.df.evaluate_df_polar_parallel(_GRIDR, 
+                                                        _GRIDPHI, 
+                                                        _POT, 
+                                                        _QDF, 
+                                                        _VPARMS, 
+                                                        _TIMES, 
+                                                        _NCORES,
+                                                        sigma_vR=_SIGMA_VR,
+                                                        sigma_vT=_SIGMA_VT,
+                                                        evaluator_threshold=_EVAL_THRESH,
+                                                        plot_df=_PLOT_DF,
+                                                        coords_in_xy=_COORD_IN_XY,
+                                                        logfile=_LOGFILE,
+                                                        verbose=_VERBOSE)
         results = np.array([1,2,3,4])
         t2 = time.time()    
                                 
@@ -142,8 +145,7 @@ for i in range( len(_LSBAR_OMEGAB_RANGE) ):
         _LOGFILE.close()
 
         # Write results to file
-        np.save('data_OMEGAB_'+str(round(_LSBAR_OMEGAB_RANGE[i],3))+'_AF_'+
-            str(round(_LSBAR_AF_RANGE[j]))+'.npy',np.array(results))
+        np.save('data'+output_str+'.npy',np.array(results))
         
         # Count up
         evaluation_counter += 1
