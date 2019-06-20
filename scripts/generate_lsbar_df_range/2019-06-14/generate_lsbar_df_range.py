@@ -137,7 +137,6 @@ for i in range( len(_LSBAR_OMEGAB_RANGE) ):
                                                         coords_in_xy=_COORD_IN_XY,
                                                         logfile=_LOGFILE,
                                                         verbose=_VERBOSE)
-        results = np.array([1,2,3,4])
         t2 = time.time()    
                                 
         # Write in the log
