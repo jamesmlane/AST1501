@@ -146,7 +146,7 @@ class LinearModel():
             self.bs_sample_vR = bs_sample_vR
             self.bs_sample_vT = bs_sample_vT
         
-        # Load pre-constructed     
+        # Load pre-constructed
         elif instantiate_method == 3:
             
             # Assert that we have the necessary keywords
@@ -303,6 +303,28 @@ class LinearModel():
         Return the bootstrap samples.
         '''
         return self.bs_sample_vR, self.bs_sample_vT 
+    #def
+    
+    def get_bs_sample_positions(self):
+        '''get_bs_sample_positions:
+        
+        Return the physical locations where the bootstrap samples were obtained
+        for the LinearModel.
+        
+        Returns:
+            R_posns (float array) - Array of R locations for each point
+            phi_posns (float array) - Array of phi locations for each point
+        '''
+        R_posns = np.array([])
+        phi_posns = np.array([])
+        # First find each unique radial position
+        for i in range(self.n_R_bins):
+            these_phi_posns = self.bs_sample_vR[i][3]
+            these_R_posns = np.ones_like(these_phi_posns)*self.bs_sample_vR[i][0]
+            R_posns = np.append(R_posns,these_R_posns)
+            phi_posns = np.append(phi_posns,these_phi_posns)
+        ###i
+        return R_posns,phi_posns
     #def
     
     def _make_bootstrap_samples(self):
