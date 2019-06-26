@@ -59,6 +59,10 @@ class LinearModel():
     
     Keywords which are always required are: phib_lims and phib_bin_size
     
+    In order to pickle this class you must import like:
+    -> from ast1501.linear_model import LinearModel where you are pickling
+    and unpickling
+    
     Args:
         instantiate_method (int) - How to instantiate the class, see above.
         gc_{R,phi,vT,vR} (float array) - Gaia star properties
@@ -309,7 +313,7 @@ class LinearModel():
         '''get_bs_sample_positions:
         
         Return the physical locations where the bootstrap samples were obtained
-        for the LinearModel.
+        for the LinearModel in a pair of single 1-D arrays.
         
         Returns:
             R_posns (float array) - Array of R locations for each point
@@ -325,6 +329,53 @@ class LinearModel():
             phi_posns = np.append(phi_posns,these_phi_posns)
         ###i
         return R_posns,phi_posns
+    #def
+    
+    def get_bs_velocities(self):
+        '''get_bs_velocities:
+        
+        Return the bootstrap velocities and errors in single 1-D arrays
+        
+        Returns:
+            vR (float array) - Array of vR for each point
+            vR_err (float array) - Array of vR errors for each point
+            vT (float array) - Array of vT for each point
+            vT_err (float array) - Array of vT errors for each point
+        '''
+        vR = np.array([])
+        vR_err = np.array([])
+        vT = np.array([])
+        vT_err = np.array([])
+        # First find each unique radial position
+        for i in range(self.n_R_bins):
+            these_vR = self.bs_sample_vR[i][1]
+            these_vR_err = self.bs_sample_vR[i][2]
+            these_vT = self.bs_sample_vT[i][1]
+            these_vT_err = self.bs_sample_vT[i][2]
+            
+            vR = np.append(vR,these_vR)
+            vR_err = np.append(vR_err,these_vR_err)
+            vT = np.append(vT,these_vT)
+            vT_err = np.append(vT_err,these_vT_err)
+        ###i    
+        return vR,vR_err,vT,vT_err
+    #def
+    
+    def get_bs_phi_errors(self):
+        '''get_bs_phi_errs:
+        
+        Return the bootstrap phi errors
+        
+        Returns:
+            phi_err (float array) - Array of phi errors for each point
+        '''
+        phi_err = np.array([])
+        # First find each unique radial position
+        for i in range(self.n_R_bins):
+            these_phi_err = self.bs_sample_vR[i][4]
+            phi_err = np.append(phi_err,these_phi_err)
+        ###i    
+        return phi_err
     #def
     
     def _make_bootstrap_samples(self):
@@ -959,7 +1010,8 @@ class LinearModel():
     
     # Define some plotting routines
     def plot_velocity_known_m_b_phi(self, velocity_type, fig=None, axs=None, 
-                                    phi_lim=[-np.pi/2,np.pi/2]):
+                                    phi_lim=[-np.pi/2,np.pi/2], 
+                                    plot_best_fit=True):
         '''plot_velocity_known_m_b_phi
         
         Plot the velocities as a function of radius for a bootstrap sample.
@@ -974,6 +1026,7 @@ class LinearModel():
             axs (matplotlib axs object) - Axs objects to use, if None then they 
                 will be created [None]
             phi_lim (2-array) - The limits of phi to plot
+            plot_best_fit (bool) - Include the best fitting m=2 profile
         '''
         
         # Select the right bootstrap sample
@@ -1003,21 +1056,24 @@ class LinearModel():
                 markeredgecolor='Black', markersize=5)
         
             # Plot the best-fitting amplitude
-            trig_phis = np.linspace(phi_lim[0], phi_lim[1], num=100)
-            if velocity_type == 'vR':
-                axs[i].plot( trig_phis, 
-                    self.b_vR[i]+self.m_vR[i]*np.sin(2*(trig_phis-self.phiB)))
-            if velocity_type == 'vT':
-                axs[i].plot( trig_phis, 
-                    self.b_vT[i]+self.m_vT[i]*np.cos(2*(trig_phis-self.phiB)))
+            if plot_best_fit:
+                trig_phis = np.linspace(phi_lim[0], phi_lim[1], num=100)
+                if velocity_type == 'vR':
+                    axs[i].plot( trig_phis, 
+                        self.b_vR[i]+self.m_vR[i]*np.sin(2*(trig_phis-self.phiB)))
+                if velocity_type == 'vT':
+                    axs[i].plot( trig_phis, 
+                        self.b_vT[i]+self.m_vT[i]*np.cos(2*(trig_phis-self.phiB)))
+                ##fi
             ##fi
         
             # Add fiducials: bar, 0 line or tangential velocity curve
             axs[i].axvline( 25*(np.pi/180), linestyle='dotted', linewidth=1.0, 
-                color='Red')
+                color='Red', label='Bar Angle')
             X0, _ = self._generate_gaussian_prior_m_b(velocity_type, bin_R_cent)
             b0 = X0[0,0]
-            axs[i].axhline( b0, linestyle='dashed', color='Black', linewidth=1.0 )
+            axs[i].axhline( b0, linestyle='dashed', color='Black', 
+                linewidth=1.0, label=r'$V_{circ}$')
                 
             # Annotate
             axs[i].annotate( r'$R_{cen}=$'+str(bin_R_cent)+' kpc', 
@@ -1036,6 +1092,7 @@ class LinearModel():
                 axs[i].set_xlabel(r'$\phi$')
             ##fi
         
+        axs[0].legend(loc='best')
         fig.subplots_adjust(hspace=0)
         
         return fig, axs
@@ -1173,8 +1230,8 @@ class LinearModel():
             axs[1].errorbar( self.R_bin_cents, use_m, yerr=use_m_err, 
                 **plot_kws)
         elif plot_type == 'plot':
-            axs[0].scatter( self.R_bin_cents, use_b, **plot_kws)
-            axs[1].scatter( self.R_bin_cents, use_m, **plot_kws)
+            axs[0].plot( self.R_bin_cents, use_b, **plot_kws)
+            axs[1].plot( self.R_bin_cents, use_m, **plot_kws)
         elif plot_type == 'scatter':
             axs[0].scatter( self.R_bin_cents, use_b, **plot_kws)
             axs[1].scatter( self.R_bin_cents, use_m, **plot_kws)
@@ -1341,6 +1398,85 @@ class LinearModel():
         return bs_mc_samp_vR, bs_mc_samp_vT
     #def
 #cls
+
+def make_data_like_bootstrap_samples(R, phi, vR, vT, phi_err=0.01, 
+                                        vT_err=0.01, vR_err=0.01):
+    '''make_data_like_bootstrap_samples:
+    
+    Take a series of R/phi data and velocities and knit it into a form that 
+    looks like the bootstrap sample arrays, and which is appropriate for using 
+    in the linear model functions.
+    
+    Args:
+        R
+        phi (float array) - Phi positions
+        vT (float array) - Tangential velocities
+        vR (float array) - Radial velocities
+        phi_err (float array) - Phi position errors [None]
+        vT_err (float array) - Tangential velocity errors [None]
+        vR_err (float array) - Radial velocity errors [None]
+        
+    Returns:
+        bs_samples_vT (N-array) - Array of the vR bootstrap sample results 
+            for a single radius. It contains:
+            - R_bin_cent (float) - Radial bin center
+            - R_bin_size (float) - Radial bin size
+            - vT (float array) - vT as a function of phi
+            - vT_error (float array) - vT uncertainty as a function of phi
+            - phi_bin_phi (float array) - phi bin centers
+            - phi_bin_phi_err (float array) - phi bin center uncertainty
+        bs_samples_vR (N-array) - same but for vT
+    '''
+    
+    # Declare the arrays which hold the bootstrap samples
+    bs_samples_vT = []
+    bs_samples_vR = []
+    
+    # Find the unique bins
+    unique_bins = np.unique(R)
+    n_R_bins = len(unique_bins)
+    
+    # Loop over each unique radius and extract all the data for that bin
+    for i in range(n_R_bins):
+        
+        this_R_bin_cent = unique_bins[i]
+        where_unique_R = np.where(R==this_R_bin_cent)[0]
+        this_phi = phi[where_unique_R]
+        this_vT = vT[where_unique_R]
+        this_vR = vR[where_unique_R]
+        
+        # Now generate the error arrays. Start of as small numbers but can 
+        # be filled. Handles arrays of errors, but also constants.
+        if type(phi_err) == float or type(phi_err) == int:
+            this_phi_err = np.ones_like(this_phi)*phi_err
+        else:
+            this_phi_err = phi_err[where_unique_R]
+        ##ie
+        
+        if type(vT_err) == float or type(vT_err) == int:
+            this_vT_err = np.ones_like(this_phi)*vT_err
+        else:
+            this_vT_err = vT_err[where_unique_R]
+        ##ie
+        
+        if type(vR_err) == float or type(vR_err) == int:
+            this_vR_err = np.ones_like(this_phi)*vR_err
+        else:
+            this_vR_err = vR_err[where_unique_R]
+        ##ie
+        
+        # Make the velocity sample
+        vT_sample = [this_R_bin_cent, this_vT, this_vT_err, 
+                     this_phi, this_phi_err]
+        vR_sample = [this_R_bin_cent, this_vR, this_vR_err,
+                     this_phi, this_phi_err]
+        
+        bs_samples_vT.append(vT_sample)
+        bs_samples_vR.append(vR_sample)
+    ###i
+    
+    return bs_samples_vR, bs_samples_vT
+#def
 
 # def bootstrap_in_phi(gc_R, gc_phi, gc_vR, gc_vT, R_bin_cent, R_bin_size, 
 #                         phi_bin_cents, phi_bin_size, n_bs):
