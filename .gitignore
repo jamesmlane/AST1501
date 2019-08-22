@@ -20,6 +20,9 @@ notebooks/start_notebook.bash
 # Ignore the report directory
 report/*
 
+# Some plotting directories
+notebooks/2-velocity_maps/plots
+
 ################################################################################
 
 ## Default
