@@ -21,7 +21,6 @@ notebooks/start_notebook.bash
 report/*
 
 # Some plotting directories
-notebooks/2-velocity_maps/plots/*
 
 ################################################################################
 
