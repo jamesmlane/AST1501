@@ -10,7 +10,7 @@
 ''' Script to run parallelized short-fast bar DF evaluation for a range of
 parameters:
 
-OmegaB: 50 -> 55
+OmegaB: 50 -> 60
 Af: 0.01 -> 0.025
 
 Run August 12, 2019
@@ -44,7 +44,7 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 10                        # Number of cores to use
+_NCORES = 12                        # Number of cores to use
 _VERBOSE = 0                        # Degree of verbosity
 _PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
