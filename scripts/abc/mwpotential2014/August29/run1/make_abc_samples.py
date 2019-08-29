@@ -9,6 +9,10 @@
 
 ### Docstrings and metadata:
 '''Script to make ABC samples for the triaxial halo project.
+
+Run on August 29
+
+6-12 kpc, 1kpc bins, vR only, LinearModel2, 
 '''
 __author__ = "James Lane"
 
@@ -50,16 +54,16 @@ import ast1501.potential
 ### Set the parameters for the search
 
 # ABC parameters
-N_ABC_SAMPLES=
+N_ABC_SAMPLES=25000
 TH_B_LOW = 0.8
 TH_B_HI = 1.0
 TH_PA_LOW = 0.0
 TH_PA_HI = np.pi
-FILENAME =
+FILENAME = 'August29'
 
 # Limits
-R_LIMS=[,]                # kpc
-R_BIN_SIZE=              # kpc
+R_LIMS=[6,12]                # kpc
+R_BIN_SIZE=1.0              # kpc
 # R_BIN_CENTS
 PHI_LIMS=[-np.pi/2,np.pi/2]     # kpc
 PHI_BIN_SIZE=np.pi/30
@@ -67,7 +71,7 @@ PHI_BIN_SIZE=np.pi/30
 PHIB_LIMS=[0,np.pi/2]
 PHIB_BIN_SIZE=np.pi/60
 # PHIB_BIN_CENTS
-USE_VELOCITIES=[,]
+USE_VELOCITIES=['vR']
 
 # Prior
 PRIOR_VAR_ARR=[25,np.inf,25,np.inf]
@@ -119,7 +123,7 @@ assert n_bar_models == len(bar_model_af_vals) and\
 
 ### Read in the master
 print('Reading the master linear model...')
-master_filename = './'+FILENAME+'_master_lm.pickle'
+master_filename = '../'+FILENAME+'_master_lm.pickle'
 with open(master_filename,'rb') as f:
     lm_mas = pickle.load(f)
 ##wi
