@@ -8,7 +8,7 @@
 # ----------------------------------------------------------------------------
 
 ### Docstrings and metadata:
-'''Script to make ABC samples for the triaxial halo project
+'''Script to make ABC samples for the triaxial halo project.
 '''
 __author__ = "James Lane"
 
@@ -50,12 +50,12 @@ import ast1501.potential
 ### Set the parameters for the search
 
 # ABC parameters
-N_ABC_SAMPLES=10000
+N_ABC_SAMPLES=
 TH_B_LOW = 0.8
 TH_B_HI = 1.0
 TH_PA_LOW = 0.0
 TH_PA_HI = np.pi
-FILENAME = 'somedate'
+FILENAME =
 
 # Limits
 R_LIMS=[,]                # kpc
@@ -67,7 +67,7 @@ PHI_BIN_SIZE=np.pi/30
 PHIB_LIMS=[0,np.pi/2]
 PHIB_BIN_SIZE=np.pi/60
 # PHIB_BIN_CENTS
-USE_VELOCITIES=['','']
+USE_VELOCITIES=[,]
 
 # Prior
 PRIOR_VAR_ARR=[25,np.inf,25,np.inf]
@@ -86,6 +86,7 @@ FORCE_YINT_VR_VALUE=0
 # ----------------------------------------------------------------------------
 
 ### Read DR16 data
+print('Reading data...')
 
 ## Load catalogs
 gaiadr2_apogee_catalog = '../../../../../data/generated/gaiadr2-apogee_dr16_dataset.FIT'
@@ -142,6 +143,7 @@ assert n_bar_models == len(bar_model_af_vals) and\
 # ----------------------------------------------------------------------------
 
 ### Make the master
+print('Making master linear model...')
 lm_mas = LinearModel2(instantiate_method=1, 
                       gc_R=gc_R, 
                       gc_phi=gc_phi, 
@@ -152,14 +154,14 @@ lm_mas = LinearModel2(instantiate_method=1,
                       phi_lims=PHI_LIMS, 
                       phi_bin_size=PHI_BIN_SIZE, 
                       phib_lims=PHIB_LIMS,
-                      phib_bin_size=PHIB_BIN_SIZE, 
+                      phib_bin_size=PHIB_BIN_SIZE,
                       use_velocities=USE_VELOCITIES,
                       prior_var_arr=PRIOR_VAR_ARR, 
                       vT_prior_type=VT_PRIOR_TYPE,
                       vT_prior_path=VT_PRIOR_PATH,
                       vT_prior_offset=VT_PRIOR_OFFSET,
-                      n_iterate=N_ITERATE, 
                       phiB=PHIB,
+                      n_iterate=N_ITERATE, 
                       n_bs=N_BS, 
                       fit_yint_vR_constant=FIT_YINT_VR_CONSTANT,
                       force_yint_vR=FORCE_YINT_VR, 
@@ -225,13 +227,13 @@ for i in tqdm.tqdm(range(N_ABC_SAMPLES),desc='We waitses'):
         bs_sample_vR=kt_bs_sample_vR, 
         bs_sample_vT=kt_bs_sample_vT, 
         phib_lims=PHIB_LIMS,
-        phib_bin_size=PHIB_BIN_SIZE 
+        phib_bin_size=PHIB_BIN_SIZE, 
         use_velocities=USE_VELOCITIES,
         prior_var_arr=PRIOR_VAR_ARR, 
         vT_prior_type=VT_PRIOR_TYPE,
         vT_prior_path=VT_PRIOR_PATH,
         vT_prior_offset=VT_PRIOR_OFFSET,
-        phiB=PHIB
+        phiB=PHIB,
         n_iterate=N_ITERATE, 
         n_bs=N_BS, 
         fit_yint_vR_constant=FIT_YINT_VR_CONSTANT,
@@ -257,7 +259,7 @@ for i in tqdm.tqdm(range(N_ABC_SAMPLES),desc='We waitses'):
             phiB=lm_kt.phiB)
     elif 'vR' in USE_VELOCITIES:
         lm_kt_sol = LinearModelSolution(
-            use_velocities=USE_VELOCITIES:,
+            use_velocities=USE_VELOCITIES,
             th_b=th_b,
             th_pa=th_pa,
             bar_omega_b=bar_model_omegab_vals[bar_mc_sample[i]],
@@ -291,17 +293,18 @@ for i in tqdm.tqdm(range(N_ABC_SAMPLES),desc='We waitses'):
 # ----------------------------------------------------------------------------
 
 ### Pickle the results
+print('Saving results...')
 
 # Samples
-with open('./'+pickle_filename+'_sample_lm.pickle','wb') as f:
+with open('./'+FILENAME+'_samples_lm.pickle','wb') as f:
     pickle.dump(lm_arr,f)
 ##wi
 # Sample solutions
-with open('./'+pickle_filename+'_solutions_lm.pickle','wb') as f:
+with open('./'+FILENAME+'_solutions_lm.pickle','wb') as f:
     pickle.dump(lm_sol_arr,f)
 ##wi
 # Master
-with open('./'+pickle_filename+'_master_lm.pickle','wb') as f:
+with open('./'+FILENAME+'_master_lm.pickle','wb') as f:
     pickle.dump(lm_mas,f)
 ##wi
 
