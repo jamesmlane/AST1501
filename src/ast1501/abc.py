@@ -38,6 +38,8 @@ from galpy.util import multi
 
 ## Scipy
 from scipy.stats import binned_statistic
+from scipy import stats
+from scipy import interpolate
 
 ## AST 1501
 from . import df as ast1501_df
