@@ -70,7 +70,7 @@ def interpolate_bar_model(R,phi,bar_model_data):
     Y_cur = R*np.sin(phi)
         
     # Now make the interpolation grid
-    interpolation_kind = 'linear'
+    interpolation_kind = 'cubic'
     interpolation_function = 'griddata'
     
     if interpolation_function == 'interp2d':
@@ -91,9 +91,9 @@ def interpolate_bar_model(R,phi,bar_model_data):
         bin_cents = np.array([X_bin_cents,Y_bin_cents]).T
         cur_cents = np.array([X_cur,Y_cur]).T
         
-        vR_interp = interpolate.griddata(bin_cents, vR_values, 
+        vR_interp = interpolate.griddata(bin_cents, vR_values, cur_cents,
             method=interpolation_kind)
-        vT_interp = interpolate.griddata(bin_cents, vT_values, 
+        vT_interp = interpolate.griddata(bin_cents, vT_values, cur_cents,
             method=interpolation_kind)
         return vR_interp, vT_interp
     ##fi
