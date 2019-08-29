@@ -35,6 +35,12 @@ from galpy.util import bovy_conversion as gpconv
 
 # ----------------------------------------------------------------------------
 
+# Define local paths. Always use os.path.join
+package_directory = os.path.dirname(os.path.abspath(__file__))
+project_directory = os.path.realpath(os.path.split(os.path.split(package_directory)[0])[0])
+
+# ----------------------------------------------------------------------------
+
 def _get_MWPotential2014_params():
     '''_get_MWPotential2014_params:
     
@@ -335,7 +341,8 @@ class kuijken_potential():
     '''
     
     def __init__(self, b_a=1.0, phib=0, R0=8.0, p=None, alpha=None, 
-                 psi_0=None, v_c=None, is2Dinfer=False):
+                 psi_0=None, v_c=None, is2Dinfer=False, 
+                 home_dir=None):
         '''__init__:
         
         Args:
@@ -348,6 +355,7 @@ class kuijken_potential():
             phib (float) - Bar angle
             is2Dinfer (bool) - Infer potential properties based on 2D (R and b) 
                 or 1D (just b) [False]
+            home_dir (str) - Path to the base of the AST1500 project
         '''
         
         # First calculate all the values using b/a and the profiles fitted 
@@ -477,7 +485,10 @@ class kuijken_potential():
         '''
         
         # Load residual fit coefficients
-        coeffs = np.load('../8-radial_DF_generation/DF-kuijken_linear_fit_third_order_residuals.npy')
+        # coeffs_path = os.path.
+        residuals_directory = 'data/generated/DF-kuijken_linear_fit_third_order_residuals.npy'
+        read_dir = os.path.join(project_directory,residuals_directory)
+        coeffs = np.load(read_dir)
         b_values = coeffs[0]
         vR_coeffs = coeffs[[1,2,3,4]]
         vT_coeffs = coeffs[[5,6,7,8]]
