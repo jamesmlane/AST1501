@@ -1,9 +1,12 @@
 # ----------------------------------------------------------------------------
 #
-# TITLE - df.py
+# TITLE - linear_model.py
 # AUTHOR - James Lane
 # PROJECT - AST1501
 # CONTENTS: 
+# LinearModel
+# LinearModel2
+# LinearModelSolution
 #
 # ----------------------------------------------------------------------------
 
@@ -44,12 +47,10 @@ from . import df as ast1501_df
 # ----------------------------------------------------------------------------
 
 class LinearModel():
-    '''linear_model:
+    '''LinearModel:
     
     A class encompassing the sinusoidal-linear model of the velocity
     fluctuations in the disk as a function of radius.
-    
-    ** Co-variance not supported b/c large matrix inversion issues **
     
     There are a few ways to instantiate the linear model. These are triggered 
     by the instantiate_method keyword:
@@ -65,35 +66,79 @@ class LinearModel():
     -> from ast1501.linear_model import LinearModel where you are pickling
     and unpickling
     
+    ** Co-variance not supported b/c large matrix inversion issues **
+    
     Args:
-        instantiate_method (int) - How to instantiate the class, see above.
-        gc_{R,phi,vT,vR} (float array) - Gaia star properties
-        df_filename (string) - Name of the filename of DF velocity field
-        {R,phi,phib}_lims (2-array) - lower and upper limits
-        {R,phi,phib}_bin_size (float) - bin size
-        bs_sample_{vR,vT} (6-array) - Bootstrap samples
-        prior_var_arr (4-array) - 
-        n_iterate (int) - Number of times to iterate the noise model [5]
-        n_bs (100) - Number of bootstrap samples
-        use_velocities (2-array) - Array of velocities to use in determination 
-            of model properties
-        force_yint_vR (bool) - Force radial velocities to have a constant 
-            y-intercept (b value) [True]
-        force_yint_vR_value (float) - Value to force the y-intercept to be
-        vT_prior_type (string) - Type of prior to use for vT: 'df' for 
-            distribution function inferred, 'rotcurve' for the rotation curve
-            calculated from MWPotential2014
-        vT_prior_offset (float) - Arbitrary offset applied to the vT prior
+        Required: 
+            instantiate_method (int) - How to instantiate the class, see above.
+        
+        Instantiation method 1:
+            gc_{R,phi,vT,vR} (float array) - Gaia star properties
+        
+        Instantiation method 2:
+            df_filename (string) - Name of the filename of DF velocity field
+        
+        Instantiation method 3:
+            bs_sample_{vR,vT} (6-array) - Bootstrap samples
+        
+        Limits & Running:
+            {R,phi,phib}_lims (2-array) - lower and upper limits
+            {R,phi,phib}_bin_size (float) - bin size
+            use_velocities (2-array) - Array of velocities to use in 
+                determination of model properties
+        
+        Prior: 
+            prior_var_arr (4-array) - Array of variances for vT offset, 
+                vT amplitudes, vR offset, and vR amplitudes
+            vT_prior_type (string) - Type of prior to use for vT: 'df' for 
+                distribution function inferred, 'rotcurve' for the rotation curve
+                calculated from MWPotential2014
+            vT_prior_path (string) - Path to DF file containing vT data for 
+                prior. Required if vT_prior_type='df' [None]
+            vT_prior_offset (float) - Arbitrary offset applied to the vT prior
+        
+        Options:
+            phiB (float) - Force the value of phiB to a fixed value [None]
+            n_iterate (int) - Number of times to iterate the noise model [5]
+            n_bs (100) - Number of bootstrap samples
+            force_yint_vR (bool) - Force radial velocities to have a constant 
+                y-intercept (b value) [True]
+            force_yint_vR_value (float) - Value to force the radial velocity 
+                y-intercept [0]
     '''
     
-    def __init__(self, instantiate_method, gc_R=None, gc_phi=None, gc_vT=None, 
-                 gc_vR=None, df_filename=None, R_lims=None, R_bin_size=None, 
-                 phi_lims=None, phi_bin_size=None, phib_lims=None, 
-                 phib_bin_size=None, phiB=None, bs_sample_vR=None, 
-                 bs_sample_vT=None, prior_var_arr=[25,np.inf,25,np.inf], 
-                 n_iterate=5, n_bs=1000, use_velocities=['vR','vT'], 
-                 force_yint_vR=True, force_yint_vR_value=0, vT_prior_type='df', 
-                 vT_prior_offset=0):
+    def __init__(self,
+                  instantiate_method, 
+                   # Method 1 instantiation
+                   gc_R=None, 
+                   gc_phi=None, 
+                   gc_vT=None, 
+                   gc_vR=None,
+                   # Method 2 instantiation
+                   df_filename=None, 
+                   # Method 3 instantiation
+                   bs_sample_vR=None, 
+                   bs_sample_vT=None, 
+                   # Limits & Running
+                   R_lims=None, 
+                   R_bin_size=None, 
+                   phi_lims=None,
+                   phi_bin_size=None, 
+                   phib_lims=None, 
+                   phib_bin_size=None, 
+                   use_velocities=['vR','vT'], 
+                   # Prior
+                   prior_var_arr=[25,np.inf,25,np.inf], 
+                   vT_prior_type='df',
+                   vT_prior_path=None,
+                   vT_prior_offset=0,
+                   # Options
+                   phiB=None, 
+                   n_iterate=5, 
+                   n_bs=1000, 
+                   force_yint_vR=True, 
+                   force_yint_vR_value=0
+                ):
         
         # First, get the bootstrap samples, one of three ways: calculate from 
         # Gaia data, load from file, or manually specify.
@@ -102,7 +147,7 @@ class LinearModel():
             # Assert that we have the necessary keywords
             assert (gc_R is not None) and (gc_phi is not None) and \
                    (gc_vT is not None) and (gc_vR is not None),\
-            'gc_R, gc_phi, gc_vT, gc_vR all expected but not provided'
+            'gc_R, gc_phi, gc_vT, gc_vR all expected for instantiate_method=1 but not provided'
             assert (R_lims is not None) and (R_bin_size is not None) and \
                    (phi_lims is not None) and (phi_bin_size is not None),\
             'R_lims, R_bin_size, phi_lims, phi_bin_size all expected for instantiate_method=1 but not provided'
@@ -125,9 +170,8 @@ class LinearModel():
             self.phi_bin_size = phi_bin_size
             self.n_bs=n_bs
             
-            # Get the bootstrap sample
+            # Create the bootstrap sample
             bs_sample_vR, bs_sample_vT = self._make_bootstrap_samples()
-            
             self.bs_sample_vR = bs_sample_vR
             self.bs_sample_vT = bs_sample_vT
         
@@ -149,11 +193,10 @@ class LinearModel():
             # Make the bootstrap samples
             bs_sample_vR, bs_sample_vT = \
                 self._make_data_like_bootstrap_samples(R, phi, vR, vT)
-            
             self.bs_sample_vR = bs_sample_vR
             self.bs_sample_vT = bs_sample_vT
         
-        # Load pre-constructed
+        # Load pre-constructed bootstrap arrays
         elif instantiate_method == 3:
             
             # Assert that we have the necessary keywords
@@ -190,7 +233,7 @@ class LinearModel():
         self.phib_bin_cents = phib_bin_cents
         self.n_phib_bins = len(phib_bin_cents)
         
-        # Always need to have prior information
+        # Always need to have prior covariance information
         assert len(prior_var_arr)==4,'prior_var_arr must have 4 elements'
         var_b_vT, var_m_vT, var_b_vR, var_m_vR = prior_var_arr
         self.var_b_vT = var_b_vT
@@ -198,20 +241,20 @@ class LinearModel():
         self.var_b_vR = var_b_vR
         self.var_m_vR = var_m_vR
         
-        # Load the DF prior
-        project_dir = '/Users/JamesLane/Science/Projects/PhD/AST1501/'
-        df_prior_file_dir = 'data/generated/MWPotential2014_DF_vT_data.npy'
-        df_prior_path = project_dir+df_prior_file_dir
-        df_prior_R, df_prior_vT = np.load(df_prior_path)
-        self.df_prior_R = df_prior_R
-        self.df_prior_vT = df_prior_vT
-        self.rotcurve_prior_R = np.arange(5,15,0.01)
-        self.rotcurve_prior_vT = potential.vcirc(potential.MWPotential2014, 
-            R=self.rotcurve_prior_R)
-        # Type of prior for vT?
+        # Initialize vT prior information based on type
         self.vT_prior_type = vT_prior_type
-        # Arbitrary offset for vT
         self.vT_prior_offset = vT_prior_offset
+        if vT_prior_type == 'rotcurve':
+            self.rotcurve_prior_R = np.arange(5,15,0.01)
+            self.rotcurve_prior_vT = potential.vcirc(potential.MWPotential2014, 
+                R=self.rotcurve_prior_R)
+        if vT_prior_type == 'df':
+            assert vT_prior_path is not None,"vT_prior_type is 'df' but vT_prior_path not supplied"
+            self.vT_prior_path = vT_prior_path
+            df_prior_R, df_prior_vT = np.load(vT_prior_path)
+            self.df_prior_R = df_prior_R
+            self.df_prior_vT = df_prior_vT
+        ##fi
         
         # Figure out if we're going to use one velocity or two.
         # Needs to be a list or a tuple
@@ -1476,9 +1519,7 @@ class LinearModel2():
     phiB, the final solution, and the iterative noise model are calculated all
     differ substantially. Likely best solution is to make LinearModel and 
     LinearModel2 both children of a base LinearModel class.
-    
-    ** Co-variance not supported b/c large matrix inversion issues **
-    
+        
     There are a few ways to instantiate the linear model. These are triggered 
     by the instantiate_method keyword:
     1 - Expects gc_R, gc_phi, gc_vT, and gc_vR are Gaia data. Will bootstrap 
@@ -1493,54 +1534,82 @@ class LinearModel2():
     -> from ast1501.linear_model import LinearModel where you are pickling
     and unpickling
     
+    ** Co-variance not supported b/c large matrix inversion issues **
+    
     Args:
-        instantiate_method (int) - How to instantiate the class, see above.
-        gc_{R,phi,vT,vR} (float array) - Gaia star properties
-        df_filename (string) - Name of the filename of DF velocity field
-        {R,phi,phib}_lims (2-array) - lower and upper limits
-        {R,phi,phib}_bin_size (float) - bin size
-        bs_sample_{vR,vT} (6-array) - Bootstrap samples
-        prior_var_arr (4-array) - 
-        n_iterate (int) - Number of times to iterate the noise model [5]
-        n_bs (100) - Number of bootstrap samples
-        use_velocities (2-array) - Array of velocities to use in determination 
-            of model properties
-        force_yint_vR (bool) - Force radial velocities to have a constant 
-            y-intercept (b value) [True]
-        force_yint_vR_value (float) - Value to force the y-intercept to be
-        fit_yint_vR_constant (float) - Fit vR y-intercepts simultaneously to be 
-            the same constant value. Parametrizes unknown solar radial motion.
-        vT_prior_type (string) - Type of prior to use for vT: 'df' for 
-            distribution function inferred, 'rotcurve' for the rotation curve
-            calculated from MWPotential2014
-        vT_prior_offset (float) - Arbitrary offset applied to the vT prior
+        Required:
+            instantiate_method (int) - How to instantiate the class, see above.
+            
+        Instantiation method 1:
+            gc_{R,phi,vT,vR} (float array) - Gaia star properties
+        
+        Instantiation method 2:
+            df_filename (string) - Name of the filename of DF velocity field
+            
+        Instantiation method 3:
+            bs_sample_{vR,vT} (6-array) - Bootstrap samples
+        
+        Limits & Running:
+            {R,phi,phib}_lims (2-array) - lower and upper limits
+            {R,phi,phib}_bin_size (float) - bin size
+            use_velocities (2-array) - Array of velocities to use in 
+                determination of model properties
+        
+        Prior: 
+            prior_var_arr (4-array) - Array of variances for vT offset, 
+                vT amplitudes, vR offset and vR amplitudes
+            vT_prior_type (string) - Type of prior to use for vT: 'df' for 
+                distribution function inferred, 'rotcurve' for the rotation curve
+                calculated from MWPotential2014
+            vT_prior_path (string) - Path to DF file containing vT data for 
+                prior. Required if vT_prior_type='df' [None]
+            vT_prior_offset (float) - Arbitrary offset applied to the vT prior
+        
+        Options:
+            phiB (float) - Force the value of phiB to a fixed value [None]
+            n_iterate (int) - Number of times to iterate the noise model [5]
+            n_bs (100) - Number of bootstrap samples
+            force_yint_vR (bool) - Force radial velocities to have a constant 
+                y-intercept (b value) [True]
+            force_yint_vR_value (float) - Value to force the radial velocity 
+                y-intercept [0]
+            fit_yint_vR_constant (bool) - Allow the linear model to fit a 
+                constant offset to all vR data points [False]
     '''
     
     def __init__(self, 
                   instantiate_method, 
+                   # Method 1 instantiation
                    gc_R=None, 
                    gc_phi=None, 
                    gc_vT=None, 
-                   gc_vR=None, 
+                   gc_vR=None,
+                   # Method 2 instantiation
                    df_filename=None, 
+                   # Method 3 instantiation
+                   bs_sample_vR=None, 
+                   bs_sample_vT=None, 
+                   # Limits & Running
                    R_lims=None, 
                    R_bin_size=None, 
-                   phi_lims=None, 
+                   phi_lims=None,
                    phi_bin_size=None, 
                    phib_lims=None, 
                    phib_bin_size=None, 
-                   phiB=None, 
-                   bs_sample_vR=None, 
-                   bs_sample_vT=None, 
+                   use_velocities=['vR','vT'], 
+                   # Prior
                    prior_var_arr=[25,np.inf,25,np.inf], 
+                   vT_prior_type='df',
+                   vT_prior_path=None,
+                   vT_prior_offset=0,
+                   # Options
+                   phiB=None,
                    n_iterate=5, 
                    n_bs=1000, 
-                   use_velocities=['vR','vT'], 
                    force_yint_vR=True, 
                    force_yint_vR_value=0, 
                    fit_yint_vR_constant=False, 
-                   vT_prior_type='df', 
-                   vT_prior_offset=0):
+                  ):
         
         # First, get the bootstrap samples, one of three ways: calculate from 
         # Gaia data, load from file, or manually specify.
@@ -1549,7 +1618,7 @@ class LinearModel2():
             # Assert that we have the necessary keywords
             assert (gc_R is not None) and (gc_phi is not None) and \
                    (gc_vT is not None) and (gc_vR is not None),\
-            'gc_R, gc_phi, gc_vT, gc_vR all expected but not provided'
+            'gc_R, gc_phi, gc_vT, gc_vR all expected for instantiate_method=1 but not provided'
             assert (R_lims is not None) and (R_bin_size is not None) and \
                    (phi_lims is not None) and (phi_bin_size is not None),\
             'R_lims, R_bin_size, phi_lims, phi_bin_size all expected for instantiate_method=1 but not provided'
@@ -1574,7 +1643,6 @@ class LinearModel2():
             
             # Get the bootstrap sample
             bs_sample_vR, bs_sample_vT = self._make_bootstrap_samples()
-            
             self.bs_sample_vR = bs_sample_vR
             self.bs_sample_vT = bs_sample_vT
         
@@ -1596,7 +1664,6 @@ class LinearModel2():
             # Make the bootstrap samples
             bs_sample_vR, bs_sample_vT = \
                 self._make_data_like_bootstrap_samples(R, phi, vR, vT)
-            
             self.bs_sample_vR = bs_sample_vR
             self.bs_sample_vT = bs_sample_vT
         
@@ -1645,20 +1712,20 @@ class LinearModel2():
         self.var_b_vR = var_b_vR
         self.var_m_vR = var_m_vR
         
-        # Load the DF prior
-        project_dir = '/Users/JamesLane/Science/Projects/PhD/AST1501/'
-        df_prior_file_dir = 'data/generated/MWPotential2014_DF_vT_data.npy'
-        df_prior_path = project_dir+df_prior_file_dir
-        df_prior_R, df_prior_vT = np.load(df_prior_path)
-        self.df_prior_R = df_prior_R
-        self.df_prior_vT = df_prior_vT
-        self.rotcurve_prior_R = np.arange(5,15,0.01)
-        self.rotcurve_prior_vT = potential.vcirc(potential.MWPotential2014, 
-            R=self.rotcurve_prior_R)
-        # Type of prior for vT?
+        # Initialize vT prior information based on type
         self.vT_prior_type = vT_prior_type
-        # Arbitrary offset for vT
         self.vT_prior_offset = vT_prior_offset
+        if vT_prior_type == 'rotcurve':
+            self.rotcurve_prior_R = np.arange(5,15,0.01)
+            self.rotcurve_prior_vT = potential.vcirc(potential.MWPotential2014, 
+                R=self.rotcurve_prior_R)
+        if vT_prior_type == 'df':
+            assert vT_prior_path is not None,"vT_prior_type is 'df' but vT_prior_path not supplied"
+            self.vT_prior_path = vT_prior_path
+            df_prior_R, df_prior_vT = np.load(vT_prior_path)
+            self.df_prior_R = df_prior_R
+            self.df_prior_vT = df_prior_vT
+        ##fi
         
         # Figure out if we're going to use one velocity or two.
         # Needs to be a list or a tuple
