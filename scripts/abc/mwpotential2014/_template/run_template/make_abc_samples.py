@@ -83,7 +83,7 @@ FORCE_YINT_VR_VALUE=0
 ### Read DR16 data
 
 ## Load catalogs
-gaiadr2_apogee_catalog = '../../data/generated/gaiadr2-apogee_dr16_dataset.FIT'
+gaiadr2_apogee_catalog = '../../../../../data/generated/gaiadr2-apogee_dr16_dataset.FIT'
 f = fits.open(gaiadr2_apogee_catalog)
 data = f[1].data
 
