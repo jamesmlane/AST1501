@@ -3129,6 +3129,160 @@ class LinearModel2():
     #def
 #cls
 
+class LinearModelSolution():
+    '''LinearModelSolution:
+    
+    Class representing the solution to either LinearModel or LinearModel2. 
+    Lightweight for easy transport, but doesn't contain any information on the 
+    data that was used to obtain the solution
+    
+    Args:
+        Required:
+        use_velocities
+        
+        Model properties:
+        th_b - Triaxial halo b/a
+        th_pa - Triaxial halo position angle
+        bar_omega_b - Bar pattern speed
+        bar_af - Bar radial force fraction
+        
+        Solution parameters:
+        b_vR - y-intercept for radial velocities
+        m_vR - amplitudes for radial velocities 
+        b_vT - y-intercept for tangential velocities
+        m_vT - amplitudes for tangential velocities 
+        *_err_*
+        
+        Optional:
+        phiB - Phase of the solution
+        
+        
+    '''
+    def __init__(self,
+                  # Required
+                  use_velocities,
+                   # Model properties
+                   th_b=None,
+                   th_pa=None,
+                   bar_omega_b=None,
+                   bar_af=None,
+                   # Solution parameters
+                   b_vR=None,
+                   m_vR=None,
+                   b_vT=None,
+                   m_vT=None,
+                   b_err_vR=None,
+                   m_err_vR=None,
+                   b_err_vT=None,
+                   m_err_vT=None,
+                   # Optional
+                   phiB=None,
+                  ):
+                  
+        # Figure out if we're going to use one velocity or two.
+        # Needs to be a list or a tuple
+        assert type(use_velocities)==list or type(use_velocities)==tuple
+        if 'vT' in use_velocities:
+            self.use_vT = True
+        else:
+            self.use_vT = False
+        ##ie
+        if 'vR' in use_velocities:
+            self.use_vR = True
+        else:
+            self.use_vR = False
+        ##ie
+        if self.use_vR==False and self.use_vT==False:
+            raise Exception('Cannot use neither vR or vT')
+        ##fi
+        
+        # Figure out how many velocities will be used.
+        if self.use_vR==False or self.use_vT==False:
+            self.n_velocities=1
+        else:
+            self.n_velocities=2
+        ##ie
+        
+        # Fill model parameters
+        self.th_b=th_b
+        self.th_pa=th_pa
+        self.bar_omega_b=bar_omega_b
+        self.bar_af=bar_af
+        
+        # Is there a triaxial halo
+        if self.th_b is not None and self.th_pa is not None:
+            self.has_th=True
+        else:
+            self.has_th=False
+        ##ie
+        
+        # Is there a bar
+        if self.bar_omega_b is not None and self.bar_af is not None:
+            self.has_bar=True
+        else:
+            self.has_bar=False
+        ##ie
+        
+        # Fill solution parameters
+        if self.use_vT:
+            assert (b_vT is not None) and (m_vT is not None) and \
+                   (b_err_vT is not None) and (m_err_vT is not None),\
+                   'b_vT, m_vT, b_err_vT, m_err_vT expected if using vT'
+            self.b_vT=b_vT
+            self.m_vT=m_vT
+            self.b_err_vT=b_err_vT
+            self.m_err_vT=m_err_vT
+        ##fi
+        if self.use_vR:
+            assert (b_vR is not None) and (m_vR is not None) and \
+                   (b_err_vR is not None) and (m_err_vR is not None),\
+                   'b_vR, m_vR, b_err_vR, m_err_vR expected if using vR'
+            self.b_vT=b_vT
+            self.m_vT=m_vT
+            self.b_err_vT=b_err_vT
+            self.m_err_vT=m_err_vT
+        ##fi
+        
+        # Fill optional parameters
+        self.phiB=phiB
+    #def
+    def get_th_properties(self):
+        '''get_th_properties:
+        
+        Return triaxial halo model properties that yielded this solution
+        
+        Returns:
+            th_props (2-arr) - array of triaxial halo properties:
+                [b/a,position_angle] in fraction of scale length and radians 
+                respectively
+        '''
+        if self.has_th:
+            return [self.th_b,self.th_pa]
+        else:
+            print('No triaxial halo properties provided')
+            pass
+        ##ie
+    #def
+    
+    def get_bar_properties(self):
+        '''get_bar_properties:
+        
+        Return bar model properties that yielded this solution
+        
+        Returns:
+            bar_props (2-arr) - array of bar properties: 
+                [pattern_speed,radial_force_fraction] in km/s/kpc and fraction
+                of radial force at solar circle respectively
+        '''
+        if self.has_bar:
+            return [self.bar_omega_b,self.bar_af]
+        else:
+            print('No bar properties provided')
+            pass
+        ##ie
+    #def
+#cls        
+
 def make_data_like_bootstrap_samples(R, phi, vR, vT, phi_err=0.01, 
                                         vT_err=0.5, vR_err=0.5):
     '''make_data_like_bootstrap_samples:
