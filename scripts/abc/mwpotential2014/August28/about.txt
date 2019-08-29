@@ -1,4 +1,0 @@
-August 28
-
-Runs with LinearModel2, between 6,12 kpc, only vR, letting the common vR 
-amplitude be a free parameter
