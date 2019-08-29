@@ -32,6 +32,11 @@ from astropy import units as apu
 ## galpy
 from galpy import potential
 
+## Scipy
+from scipy.stats import binned_statistic_2d, binned_statistic
+from scipy import stats
+from scipy import interpolate
+
 ## Add project-specific package. Assume relative location
 sys.path.append('../../../../../src/')
 from ast1501.linear_model import LinearModel
