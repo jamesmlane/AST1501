@@ -91,6 +91,7 @@ FORCE_YINT_VR_VALUE=0
 # ----------------------------------------------------------------------------
 
 ### Read DR16 data
+print('Reading data...')
 
 ## Load catalogs
 gaiadr2_apogee_catalog = '../../../../../data/generated/gaiadr2-apogee_dr16_dataset.FIT'
@@ -147,6 +148,7 @@ assert n_bar_models == len(bar_model_af_vals) and\
 # ----------------------------------------------------------------------------
 
 ### Make the master
+print('Making master linear model...')
 lm_mas = LinearModel2(instantiate_method=1, 
                       gc_R=gc_R, 
                       gc_phi=gc_phi, 
@@ -296,17 +298,18 @@ for i in tqdm.tqdm(range(N_ABC_SAMPLES),desc='We waitses'):
 # ----------------------------------------------------------------------------
 
 ### Pickle the results
+print('Saving results...')
 
 # Samples
-with open('./'+pickle_filename+'_sample_lm.pickle','wb') as f:
+with open('./'+FILENAME+'_samples_lm.pickle','wb') as f:
     pickle.dump(lm_arr,f)
 ##wi
 # Sample solutions
-with open('./'+pickle_filename+'_solutions_lm.pickle','wb') as f:
+with open('./'+FILENAME+'_solutions_lm.pickle','wb') as f:
     pickle.dump(lm_sol_arr,f)
 ##wi
 # Master
-with open('./'+pickle_filename+'_master_lm.pickle','wb') as f:
+with open('./'+FILENAME+'_master_lm.pickle','wb') as f:
     pickle.dump(lm_mas,f)
 ##wi
 
