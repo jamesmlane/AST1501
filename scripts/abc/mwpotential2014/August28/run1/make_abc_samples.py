@@ -254,7 +254,7 @@ for i in tqdm.tqdm(range(N_ABC_SAMPLES),desc='We waitses'):
             b_err_vT=lm_kt.b_err_vT,
             m_err_vT=lm_kt.m_err_vT,
             phiB=lm_kt.phiB)
-    elif 'vR' in USE_VELOCITIES
+    elif 'vR' in USE_VELOCITIES:
         lm_kt_sol = LinearModelSolution(
             use_velocities=USE_VELOCITIES,
             th_b=th_b,
