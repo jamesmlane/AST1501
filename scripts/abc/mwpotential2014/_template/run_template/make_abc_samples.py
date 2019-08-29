@@ -80,7 +80,7 @@ PHIB=None
 N_ITERATE=5
 N_BS=1000
 FIT_YINT_VR_CONSTANT=True # Only for LinearModel2
-FORCE_YINT_VR=True
+FORCE_YINT_VR=False
 FORCE_YINT_VR_VALUE=0
 
 # ----------------------------------------------------------------------------

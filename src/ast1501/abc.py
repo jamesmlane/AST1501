@@ -71,13 +71,31 @@ def interpolate_bar_model(R,phi,bar_model_data):
         
     # Now make the interpolation grid
     interpolation_kind = 'linear'
-    vR_interpolator = interpolate.interp2d(X_bin_cents, Y_bin_cents, vR_values, 
-        kind=interpolation_kind)
-    vT_interpolator = interpolate.interp2d(X_bin_cents, Y_bin_cents, vT_values, 
-        kind=interpolation_kind)
+    interpolation_function = 'griddata'
+    
+    if interpolation_function == 'interp2d':
+        vR_interpolator = interpolate.interp2d(X_bin_cents, Y_bin_cents, vR_values, 
+            kind=interpolation_kind)
+        vT_interpolator = interpolate.interp2d(X_bin_cents, Y_bin_cents, vT_values, 
+            kind=interpolation_kind)
+            
+        # Interpolate and return
+        vR_interp = vR_interpolator(X_cur, Y_cur)
+        vT_interp = vT_interpolator(X_cur, Y_cur)
         
-    # Interpolate and return
-    vR_interp = vR_interpolator(X_cur, Y_cur)
-    vT_interp = vT_interpolator(X_cur, Y_cur)
-    return vR_interp[0,:], vT_interp[0,:]
+        return vR_interp[0,:], vT_interp[0,:]
+    ##fi
+    
+    if interpolation_function == 'griddata':
+        # Try griddata
+        bin_cents = np.array([X_bin_cents,Y_bin_cents]).T
+        cur_cents = np.array([X_cur,Y_cur]).T
+        
+        vR_interp = interpolate.griddata(bin_cents, vR_values, 
+            method=interpolation_kind)
+        vT_interp = interpolate.griddata(bin_cents, vT_values, 
+            method=interpolation_kind)
+        return vR_interp, vT_interp
+    ##fi
+    
 #def
