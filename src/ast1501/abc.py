@@ -129,9 +129,9 @@ def load_abc_params(filename):
     # Now parse the dictionary to evaluate it properly
     for key in parameter_dict:
         
-        # np.pi is converted into a string, so evaluate it
+        # numpy objects are converted into a string, so evaluate them
         if type(parameter_dict[key]) is str:
-            if 'np.pi' in parameter_dict[key]:
+            if 'np.' in parameter_dict[key]:
                 parameter_dict[key] = eval(parameter_dict[key])
             ##fi
         ##fi
@@ -140,7 +140,7 @@ def load_abc_params(filename):
         if type(parameter_dict[key]) is list:
             for i in range(len(parameter_dict[key])):
                 if type(parameter_dict[key][i]) is str:
-                    if 'np.pi' in parameter_dict[key][i]:
+                    if 'np.' in parameter_dict[key][i]:
                         parameter_dict[key][i] = eval(parameter_dict[key][i])
                     ##fi
                 ##fi
