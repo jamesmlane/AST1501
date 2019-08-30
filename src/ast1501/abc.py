@@ -20,6 +20,7 @@ __author__ = "James Lane"
 ## Basic
 import numpy as np
 import sys, os, pdb, copy
+import yaml
 
 ## Plotting
 from matplotlib import pyplot as plt
