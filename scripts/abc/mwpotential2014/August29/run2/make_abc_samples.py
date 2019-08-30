@@ -54,7 +54,7 @@ import ast1501.potential
 ### Load parameters
 
 # Load parameters from the YAML file
-PARAMETER_FILE = './abc_parameters.yaml'
+PARAMETER_FILE = '../abc_parameters.yaml'
 parameter_dict = ast1501.abc.load_abc_params(PARAMETER_FILE)
 locals().update(parameter_dict)
 
