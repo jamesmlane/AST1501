@@ -153,3 +153,79 @@ def load_abc_params(filename):
 #def
 
 # ----------------------------------------------------------------------------
+
+def plot_posterior_histogram(data,bins=20,lims=None,plot_kws={},fig=None,ax=None):
+    '''plot_posterior_histogram:
+    
+    Plot the posterior distribution in a histogram style
+    
+    Args:
+        data (float array) - Data to plot
+        lims (2-array) - Limits of the data
+        fig (matplotlib figure) - Optional figure object [None]
+        ax (matplotlib axis) - Optional axis object [None]
+        
+    Returns:
+        fig (matplotlib figure) - Figure object
+        ax (matplotlib axis) - Axis object    
+    '''
+    
+    # Format for this figure is single pane
+    if fig is None or ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+    ##fi
+    
+    # Make the histogram and normalize so it's a PDF
+    hist, bin_edges = np.histogram( data, bins=bins, range=lims )
+    hist = hist / len(data)
+    
+    # Make a step plot
+    ax.step( hist, bin_edges, **plot_kws )
+    
+    return fig,ax
+#def
+    
+# ----------------------------------------------------------------------------
+
+def plot_posterior_discrete(data, fig=None, ax=None, plot_kws={}):
+    '''plot_posterior_discrete:
+    
+    Plot the posterior of a discrete quantity (like bar properties) using 
+    straight lines and points instead of a histogram
+    
+    Args:
+        data (float array) - Data to plot
+        fig (matplotlib figure) - Optional figure object [None]
+        ax (matplotlib axis) - Optional axis object [None]
+    
+    Returns:
+        fig (matplotlib figure) - Figure object
+        ax (matplotlib axis) - Axis object    
+    '''
+    
+    # Format for this figure is single pane
+    if fig is None or ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+    ##fi 
+    
+    # Figure out unique data points and total number of data points
+    n_data_points = len(data)
+    unique_data_points = np.sort(np.unique(data))
+    n_unique_data_points = len(unique_data_points)
+    
+    # Loop over the 
+    unique_data_density = np.zeros_like(unique_data_points)
+    for i in range( n_unique_data_points ):
+        this_point = unique_data_points[i]
+        unique_data_density[i] = len(np.where( data == this_point )[0]) /\
+                                    n_unique_data_points
+    ###i
+    
+    ax.plot( unique_data_points, unique_data_density, **plot_kws)
+    
+    return fig, ax
+#def
+
+# ----------------------------------------------------------------------------
