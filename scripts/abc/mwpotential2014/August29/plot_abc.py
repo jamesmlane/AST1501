@@ -43,7 +43,7 @@ plt.rc('text', usetex=True)
 ### Set the parameters for the matching and plotting
 EPSILON_N_SIGMA=1.0
 
-# Try loading the dictionary from YAML
+# Load parameters from the YAML file
 PARAMETER_FILE = './abc_parameters.yaml'
 parameter_dict = ast1501.abc.load_abc_params(PARAMETER_FILE)
 locals().update(parameter_dict)
