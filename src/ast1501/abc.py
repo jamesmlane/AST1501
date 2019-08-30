@@ -99,3 +99,56 @@ def interpolate_bar_model(R,phi,bar_model_data):
     ##fi
     
 #def
+
+# ----------------------------------------------------------------------------
+
+def load_abc_params(filename):
+    '''load_abc_params:
+    
+    Will take a .yaml parameter file, load it into a dictionary, manipulate 
+    the results, and then return the dictionary for loading into the 
+    local namespace.
+    
+    Args:
+        filename (string) - Path to the parameter file
+    
+    Returns:
+        parameters (dict) - Parameter dictionary to be loaded into namespace
+    '''
+    
+    # Load into dictionary
+    with open(filename, 'r') as stream:
+        try:
+            parameter_dict = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+        ##te
+    ##wi
+    
+    # Now parse the dictionary to evaluate it properly
+    for key in parameter_dict:
+        
+        # np.pi is converted into a string, so evaluate it
+        if type(parameter_dict[key]) is str:
+            if 'np.pi' in parameter_dict[key]:
+                parameter_dict[key] = eval(parameter_dict[key])
+            ##fi
+        ##fi
+        
+        # Also check through arrays
+        if type(parameter_dict[key]) is list:
+            for i in range(len(parameter_dict[key])):
+                if type(parameter_dict[key][i]) is str:
+                    if 'np.pi' in parameter_dict[key][i]:
+                        parameter_dict[key][i] = eval(parameter_dict[key][i])
+                    ##fi
+                ##fi
+            ###i
+        ##fi
+        
+    #key
+    
+    return parameter_dict
+#def
+
+# ----------------------------------------------------------------------------
