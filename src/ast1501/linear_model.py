@@ -3237,10 +3237,10 @@ class LinearModelSolution():
             assert (b_vR is not None) and (m_vR is not None) and \
                    (b_err_vR is not None) and (m_err_vR is not None),\
                    'b_vR, m_vR, b_err_vR, m_err_vR expected if using vR'
-            self.b_vT=b_vT
-            self.m_vT=m_vT
-            self.b_err_vT=b_err_vT
-            self.m_err_vT=m_err_vT
+            self.b_vR=b_vR
+            self.m_vR=m_vR
+            self.b_err_vR=b_err_vR
+            self.m_err_vR=m_err_vR
         ##fi
         
         # Fill optional parameters
