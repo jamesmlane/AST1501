@@ -56,8 +56,6 @@ PARAMETER_FILE = './abc_parameters.yaml'
 parameter_dict = ast1501.abc.load_abc_params(PARAMETER_FILE)
 locals().update(parameter_dict)
 
-pdb.set_trace()
-
 # ----------------------------------------------------------------------------
 
 ### Read DR16 data
