@@ -10,6 +10,7 @@
 ### Docstrings and metadata:
 '''Script to make ABC master LinearModel for the triaxial halo project.
 '''
+
 __author__ = "James Lane"
 
 ### Imports
@@ -38,7 +39,7 @@ from scipy import stats
 from scipy import interpolate
 
 ## Add project-specific package. Assume relative location
-sys.path.append('../../../../../src/')
+sys.path.append('../../../../src/')
 from ast1501.linear_model import LinearModel
 from ast1501.linear_model import LinearModel2
 from ast1501.linear_model import LinearModelSolution
@@ -47,36 +48,10 @@ import ast1501.potential
 
 # ----------------------------------------------------------------------------
 
-### Set the parameters for the search
-
-# ABC parameters
-FILENAME =
-
-# Limits
-R_LIMS=[,]                # kpc
-R_BIN_SIZE=              # kpc
-# R_BIN_CENTS
-PHI_LIMS=[-np.pi/2,np.pi/2]     # kpc
-PHI_BIN_SIZE=np.pi/30
-# PHI_BIN_CENTS
-PHIB_LIMS=[0,np.pi/2]
-PHIB_BIN_SIZE=np.pi/60
-# PHIB_BIN_CENTS
-USE_VELOCITIES=[,]
-
-# Prior
-PRIOR_VAR_ARR=[25,np.inf,25,np.inf]
-VT_PRIOR_TYPE='df'
-VT_PRIOR_PATH='../../../../data/linear_model_prior/MWPotential2014_df_vT_data.npy'
-VT_PRIOR_OFFSET=0.0
-
-# Options
-PHIB=None
-N_ITERATE=5
-N_BS=1000
-FIT_YINT_VR_CONSTANT=True # Only for LinearModel2
-FORCE_YINT_VR=False
-FORCE_YINT_VR_VALUE=0
+# Load parameters from the YAML file
+PARAMETER_FILE = './abc_parameters.yaml'
+parameter_dict = ast1501.abc.load_abc_params(PARAMETER_FILE)
+locals().update(parameter_dict)
 
 # ----------------------------------------------------------------------------
 
