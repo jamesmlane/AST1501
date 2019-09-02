@@ -3281,6 +3281,172 @@ class LinearModelSolution():
             pass
         ##ie
     #def
+    
+    def plot_velocity_m_r(self, fig=None, axs=None, plot_type='errorbar', 
+                            plot_kws={}, label_fs=12, which_velocity=None):
+        '''plot_velocity_m_r:
+        
+        Plot both m and b as a functions of radius for either vR or vT
+        
+        Args:
+            fig (matplotlib figure object) - Figure object to use, if None then 
+                one will be created [None]
+            axs (matplotlib axs object) - Axs objects to use, if None then they 
+                will be created. Should be 2 length [None]
+            plot_type (string) - What type of plot to make? Either 'errorbar'm 
+                'scatter' or 'plot' ['errorbar']
+            plot_kws (dict) - Dictionary of properties to be passed to the 
+                plotting functions. Make sure commensurate with plot_type! [{}]
+        '''
+        
+        print('plot_velocity_m_r not properly implemented yet')
+        pass
+        
+        # Format for this figure is single column 2 axis
+        if fig is None or axs is None:
+            fig = plt.figure( figsize=(12,4) )
+            axs = fig.subplots( nrows=1, ncols=2 )
+        ##fi
+        
+        if which_velocity == None:
+            if self.n_velocities==2:
+                raise Exception('No velocity specified and 2 used.')
+            ##fi
+            which_velocity = self.vel_1v
+        ##fi
+        
+        if which_velocity == 'vR':
+            use_b = self.b_vR
+            use_m = self.m_vR
+            use_b_err = self.b_err_vR
+            use_m_err = self.m_err_vR
+        if which_velocity == 'vT':
+            use_b = self.b_vT
+            use_m = self.m_vT
+            use_b_err = self.b_err_vT
+            use_m_err = self.m_err_vT
+        ##fi
+        
+        # Plot
+        if plot_type == 'errorbar':
+            axs[0].errorbar( self.R_bin_cents, use_b, yerr=use_b_err, 
+                **plot_kws)
+            axs[1].errorbar( self.R_bin_cents, use_m, yerr=use_m_err, 
+                **plot_kws)
+        elif plot_type == 'plot':
+            axs[0].plot( self.R_bin_cents, use_b, **plot_kws)
+            axs[1].plot( self.R_bin_cents, use_m, **plot_kws)
+        elif plot_type == 'scatter':
+            axs[0].scatter( self.R_bin_cents, use_b, **plot_kws)
+            axs[1].scatter( self.R_bin_cents, use_m, **plot_kws)
+        ##fi
+        
+        # Labels and limits
+        if which_velocity == 'vR':
+            axs[0].set_ylabel(r'$b_{R}$ [km/s]', fontsize=label_fs)
+            axs[1].set_ylabel(r'$m_{R}$ [km/s]', fontsize=label_fs)
+        if which_velocity == 'vT':
+            axs[0].set_ylabel(r'$b_{T}$ [km/s]', fontsize=label_fs)
+            axs[1].set_ylabel(r'$m_{T}$ [km/s]', fontsize=label_fs)
+        ##fi
+        axs[0].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[1].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[0].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        axs[1].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        
+        # Add fiducials
+        axs[1].axhline(0, linestyle='dashed', color='Black')
+        if which_velocity == 'vR':
+            axs[0].axhline(0, linestyle='dashed', color='Black')
+        if which_velocity == 'vT':
+            if self.vT_prior_type=='df':    
+                axs[0].plot( self.df_prior_R, self.df_prior_vT,
+                    linestyle='dashed', color='Black' )
+            if self.vT_prior_type=='rotcurve':
+                axs[0].plot( self.rotcurve_prior_R, self.rotcurve_prior_vT,
+                    linestyle='dashed', color='Black')
+            ##fi
+        ##fi
+        
+        return fig, axs
+    
+    def plot_vRvT_m_r(self, fig=None, axs=None, plot_type='errorbar', 
+                        plot_kws={}, label_fs=12):
+        '''plot_m_b:
+        
+        Plot both m and b as functions of radius for vT and vR profiles
+        
+        Args:
+            fig (matplotlib figure object) - Figure object to use, if None then 
+                one will be created [None]
+            axs (matplotlib axs object) - Axs objects to use, if None then they 
+                will be created. Should be 2x2 [None]
+            plot_type (string) - What type of plot to make? Either 'errorbar'
+                'scatter' or 'plot' ['errorbar']
+            plot_kws (dict) - Dictionary of properties to be passed to the 
+                plotting functions. Make sure commensurate with plot_type! [{}]
+        '''
+        
+        print('plot_velocity_m_r not properly implemented yet')
+        pass
+        
+        # Format for this figure is 2x2
+        if fig is None or axs is None:
+            fig = plt.figure( figsize=(12,6) ) 
+            axs = fig.subplots( nrows=2, ncols=2 )
+        ##fi
+        
+        # Plot
+        if plot_type == 'errorbar':
+            axs[0,0].errorbar( self.R_bin_cents, self.b_vR, yerr=self.b_err_vR, 
+                **plot_kws)
+            axs[0,1].errorbar( self.R_bin_cents, self.m_vR, yerr=self.m_err_vR, 
+                **plot_kws)
+            axs[1,0].errorbar( self.R_bin_cents, self.b_vT, yerr=self.b_err_vT, 
+                **plot_kws)
+            axs[1,1].errorbar( self.R_bin_cents, self.m_vT, yerr=self.m_err_vT, 
+                **plot_kws)
+        elif plot_type == 'plot':
+            axs[0,0].plot( self.R_bin_cents, self.b_vR, **plot_kws)
+            axs[0,1].plot( self.R_bin_cents, self.m_vR, **plot_kws)
+            axs[1,0].plot( self.R_bin_cents, self.b_vT, **plot_kws)
+            axs[1,1].plot( self.R_bin_cents, self.m_vT, **plot_kws)
+        elif plot_type == 'scatter':
+            axs[0,0].scatter( self.R_bin_cents, self.b_vR, **plot_kws)
+            axs[0,1].scatter( self.R_bin_cents, self.m_vR, **plot_kws)
+            axs[1,0].scatter( self.R_bin_cents, self.b_vT, **plot_kws)
+            axs[1,1].scatter( self.R_bin_cents, self.m_vT, **plot_kws)
+        
+        # Labels and limits
+        axs[0,0].set_ylabel(r'$b_{R}$ [km/s]', fontsize=label_fs)
+        axs[0,1].set_ylabel(r'$m_{R}$ [km/s]', fontsize=label_fs)
+        axs[1,0].set_ylabel(r'$b_{T}$ [km/s]', fontsize=label_fs)
+        axs[1,1].set_ylabel(r'$m_{T}$ [km/s]', fontsize=label_fs)
+        axs[0,0].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[0,1].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[1,0].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[1,1].set_xlabel(r'R [kpc]', fontsize=label_fs)
+        axs[0,0].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        axs[0,1].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        axs[1,0].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        axs[1,1].set_xlim( np.min(self.R_bin_cents)-1, np.max(self.R_bin_cents)+1 )
+        
+        # Add fiducials
+        axs[0,0].axhline(0, linestyle='dashed', color='Black')
+        axs[0,1].axhline(0, linestyle='dashed', color='Black')
+        axs[1,1].axhline(0, linestyle='dashed', color='Black')
+        
+        # Prior
+        if self.vT_prior_type=='df':    
+            axs[1,0].plot( self.df_prior_R, self.df_prior_vT,
+                linestyle='dashed', color='Black' )
+        if self.vT_prior_type=='rotcurve':
+            axs[1,0].plot( self.rotcurve_prior_R, self.rotcurve_prior_vT,
+                linestyle='dashed', color='Black')
+        ##fi
+        
+        return fig, axs
+    
 #cls        
 
 def make_data_like_bootstrap_samples(R, phi, vR, vT, phi_err=0.01, 
