@@ -101,13 +101,16 @@ if 'vT' in USE_VELOCITIES:
 # Array of matches. Will be indexed if the file is a match
 matches = np.zeros(n_abc_solutions)
 
+all_bars = np.zeros(n_abc_solutions)
+
 # Loop over the samples
 for i in range( n_abc_solutions ):
     
     lm_sol = lm_solutions[i]
     
+    all_bars[i] = lm_sol.bar_omega_b
+    
     if 'vR' in USE_VELOCITIES:
-        pdb.set_trace()
         lm_sol_m_vR = lm_sol.m_vR
         lm_sol_m_vR_err = lm_sol.m_err_vR
     ##fi
@@ -165,8 +168,41 @@ for i in range( n_good_matches ):
 
 # ----------------------------------------------------------------------------
 
-# Plot the results
+### Plot each solution
 
+fig = plt.figure( figsize=(12,4) )
+axs = fig.subplots( nrows=1, ncols=2 )
+
+R_bin_cents = np.arange(R_LIMS[0],R_LIMS[1],R_BIN_SIZE)+R_BIN_SIZE/2
+
+axs[0].errorbar( R_bin_cents, lm_mas.b_vR, yerr=lm_mas.b_err_vR, 
+    **{'markerfacecolor':None,'ecolor':'Black','markeredgecolor':'Black',
+       'color':'Black','markersize':10,'marker':'o'} )
+axs[1].errorbar( R_bin_cents, lm_mas.m_vR, yerr=lm_mas.m_err_vR, 
+    **{'markerfacecolor':None,'ecolor':'Black','markeredgecolor':'Black',
+       'color':'Black','markersize':10,'marker':'o'} )
+       
+axs[0].set_xlabel(r'R [kpc]', fontsize=12)
+axs[1].set_xlabel(r'R [kpc]', fontsize=12)
+axs[0].set_ylabel(r'$b_{R}$ [km/s]', fontsize=12)
+axs[1].set_ylabel(r'$m_{R}$ [km/s]', fontsize=12)
+
+# Add the individual solutions
+for i in range( n_good_matches ):
+    
+    lm_sol = lm_solutions[where_good_matches[i]]
+    axs[0].axhline( lm_sol.b_vR[0], color='Red', alpha=0.5 )
+    axs[1].plot( R_bin_cents, lm_sol.m_vR, color='Red', alpha=0.5 )
+    
+###i
+
+fig.savefig('model_amplitudes.pdf')
+
+# ----------------------------------------------------------------------------
+
+### Plot the results
+
+# Just plot single PDFs
 fig,ax = ast1501.abc.plot_posterior_histogram(match_th_b,bins=20,
     lims=[TH_B_LOW,TH_B_HI])
 
@@ -193,3 +229,14 @@ ax.set_xlabel(r'Bar $A_{f}$')
 ax.set_ylabel('Probability')
 ax.set_xlim(0.005,0.03)
 fig.savefig('th_bar_af_pdf.pdf')
+
+# Plot the combined PDF
+staircase_data = np.array([  match_th_b,
+                        match_th_pa,
+                        #match_bar_omega_b,
+                        #match_bar_af
+                     ]).T
+staircase_labels = [r'$b/a$',r'$\phi_{b}$ [rad]']
+                    #r'$\Omega_{b}$ [km/s/kpc]',r'$A_{f}$']
+fig, ax = ast1501.abc.staircase_plot_kernel(staircase_data, staircase_labels)
+fig.savefig('staircase_plots.pdf', plot_median=True)
