@@ -2273,7 +2273,7 @@ class LinearModel2():
         
         for j in range(n_phib_bins):    
             A = np.ones((n_good_phi_bins,2))
-            A[:,1] = self.trig_function_vT( 2*( phi_bin_phi - self.phib_bin_cents[j] ) )
+            A[:,1] = -self.trig_function_vT( 2*( phi_bin_phi - self.phib_bin_cents[j] ) )
             
             # Now compute the vectors which form the solution
             V_inv = np.linalg.multi_dot( [ A.T, C_inv, A ] ) + SIGMA_inv
@@ -2362,7 +2362,7 @@ class LinearModel2():
                 _, _, _, phi_bin_phi, _ = self.bs_sample_vR[i]
                 select_inds = np.arange(0,len(phi_bin_phi),dtype='int')
                 R_inds = fill_inds[ select_inds ]
-                A[R_inds,i+1] = self.trig_function_vR( 2*( phi_bin_phi - self.phib_bin_cents[j] ) )
+                A[R_inds,i+1] = -self.trig_function_vR( 2*( phi_bin_phi - self.phib_bin_cents[j] ) )
                 fill_inds = np.delete(fill_inds,select_inds)
             ##fi
             
@@ -2419,7 +2419,7 @@ class LinearModel2():
         C_inv = np.linalg.inv(C)
         
         A = np.ones((n_good_phi_bins,2))
-        A[:,1] = self.trig_function_vT( 2*( phi_bin_phi - phiB ) )
+        A[:,1] = -self.trig_function_vT( 2*( phi_bin_phi - phiB ) )
         
         V_inv = np.linalg.multi_dot( [ A.T, C_inv, A ] ) + SIGMA_inv
         V = np.linalg.inv( V_inv )
@@ -2472,7 +2472,7 @@ class LinearModel2():
             # Fill arrays
             Y[R_inds,0] = phi_bin_v
             C[R_inds,R_inds] = np.square(phi_bin_v_err) + extra_variance[i]
-            A[R_inds,i+1] = self.trig_function_vR( 2*( phi_bin_phi - phiB ) )
+            A[R_inds,i+1] = -self.trig_function_vR( 2*( phi_bin_phi - phiB ) )
             
             # Remove the indices which are already filled
             fill_inds = np.delete(fill_inds,select_inds)
