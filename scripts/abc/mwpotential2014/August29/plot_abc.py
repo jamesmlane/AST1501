@@ -222,6 +222,8 @@ fig.savefig('model_amplitudes.pdf')
 
 # ----------------------------------------------------------------------------
 
+pdb.set_trace()
+
 ### Plot the velocities of the data and solutions
 
 R_bin_cents_mas, phi_bin_cents_mas = lm_mas.get_bs_sample_positions()

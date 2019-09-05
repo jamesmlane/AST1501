@@ -10,9 +10,10 @@
 ### Docstrings and metadata:
 '''Script to make ABC master LinearModel for the triaxial halo project.
 
-Run on August 29
+Run on September 5
 
-6-12 kpc, 1kpc bins, vR only, LinearModel2, 
+6-12 kpc, 1kpc bins, vR only, LinearModel2, Make the LinearModel2 fit the 
+negative amplitude to align with the data
 '''
 __author__ = "James Lane"
 
@@ -23,10 +24,9 @@ import numpy as np
 import sys, os, pdb, importlib, glob, pickle, tqdm
 
 ## Plotting
-# from matplotlib import pyplot as plt
-# from matplotlib.backends.backend_pdf import PdfPages
-# from matplotlib import colors
-# from matplotlib import cm
+from matplotlib import pyplot as plt
+from matplotlib import colors
+from matplotlib import cm
 
 ## Astropy
 from astropy.io import fits
@@ -110,6 +110,22 @@ lm_mas = LinearModel2(instantiate_method=1,
                       fit_yint_vR_constant=FIT_YINT_VR_CONSTANT,
                       force_yint_vR=FORCE_YINT_VR, 
                       force_yint_vR_value=FORCE_YINT_VR_VALUE)
+
+# ----------------------------------------------------------------------------
+
+### Plot the results
+
+fig, axs = lm_mas.plot_velocity_known_m_b_phi(velocity_type='vR')
+plt.savefig('master_vR.pdf')
+
+# fig, axs = lm_mas.plot_velocity_known_m_b_phi(velocity_type='vT')
+# plt.savefig('master_vT.pdf')
+# 
+# fig, axs = lm_mas.plot_vRvT_m_r()
+# plt.savefig('master_fit.pdf')
+
+fig, axs = lm_mas.plot_velocity_m_r()
+plt.savefig('master_fit.pdf')
 
 # ----------------------------------------------------------------------------
 
