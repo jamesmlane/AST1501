@@ -51,8 +51,30 @@ locals().update(parameter_dict)
 # ----------------------------------------------------------------------------
 
 ### Load data
+print('Reading data...')
 
-# Read in the master
+## Bar names
+bar_model_names = glob.glob('../../../../data/df/MWPotential2014/bar/*.npy')
+n_bar_models = len(bar_model_names)
+
+## Pre-known values for the bar models
+bar_model_af_vals = np.array([0.01,0.015,0.02,0.025,0.01,0.015,0.02,0.025,0.01,
+                              0.015,0.02,0.025,0.01,0.015,0.02,0.025,0.01,0.015,
+                              0.02,0.025,0.01,0.015,0.02,0.025])
+bar_model_omegab_vals = np.array([35,35,35,35,40,40,40,40,45,45,45,45,50,50,50,
+                                  50,55,55,55,55,60,60,60,60])
+
+## Load bar models
+bar_models = []
+for i in range(len(bar_model_names)):
+    bar_model_data_temp = np.load(bar_model_names[i])
+    bar_models.append(bar_model_data_temp)
+###i
+assert n_bar_models == len(bar_model_af_vals) and\
+       n_bar_models == len(bar_model_omegab_vals),\
+       'Missmatched number of bar parameters'
+
+## Read in the master
 print('Reading the master linear model...')
 master_filename = './'+FILENAME+'_master_lm.pickle'
 with open(master_filename,'rb') as f:
@@ -168,7 +190,7 @@ for i in range( n_good_matches ):
 
 # ----------------------------------------------------------------------------
 
-### Plot each solution
+### Plot the amplitudes of each solution
 
 fig = plt.figure( figsize=(12,4) )
 axs = fig.subplots( nrows=1, ncols=2 )
@@ -192,11 +214,120 @@ for i in range( n_good_matches ):
     
     lm_sol = lm_solutions[where_good_matches[i]]
     axs[0].axhline( lm_sol.b_vR[0], color='Red', alpha=0.5 )
-    axs[1].plot( R_bin_cents, lm_sol.m_vR, color='Red', alpha=0.5 )
+    axs[1].plot( R_bin_cents, lm_sol.m_vR, color='Red', alpha=0.25 )
     
 ###i
 
 fig.savefig('model_amplitudes.pdf')
+
+# ----------------------------------------------------------------------------
+
+### Plot the velocities of the data and solutions
+
+R_bin_cents_mas, phi_bin_cents_mas = lm_mas.get_bs_sample_positions()
+unique_R_bin_cents_mas = np.unique(R_bin_cents_mas)
+
+fig, axs = lm_mas.plot_velocity_known_m_b_phi(velocity_type='vR')
+
+# Loop over each solution and plot the data
+for i in range( n_good_matches ):
+    
+    # Load the LinearModelSolution
+    lm_sol = lm_solutions[where_good_matches[i]]
+    th_b = lm_sol.th_b
+    th_pa = lm_sol.th_pa
+    soln_bar_omega_b = lm_sol.bar_omega_b
+    soln_bar_af = lm_sol.bar_af
+    
+    where_bar_model = np.where( (bar_model_omegab_vals == soln_bar_omega_b) &
+                                (bar_model_af_vals == soln_bar_af) )[0][0]
+    
+    # Load the Kuijken & Tremaine data
+    kt = ast1501.potential.kuijken_potential(b_a=0.8, phib=1.5)
+    kt_vR = kt.kuijken_vr(R=R_bin_cents_mas, phi=phi_bin_cents_mas)
+    
+    # Perturb the solution?
+    # kt_vR_pert = np.random.normal(loc=0.0, scale=1.0, size=n_pts_mas) * vR_err_mas
+    
+    # Interpolate on the bar model
+    vR_bar, vT_bar = ast1501.abc.interpolate_bar_model(R_bin_cents_mas, 
+        phi_bin_cents_mas, bar_models[where_bar_model])
+        
+    kt_vR = vR_bar# kt_vR + vR_bar # + kt_vR_pert
+    
+    # Loop over radii
+    for j in range( len(unique_R_bin_cents_mas) ):
+        
+        this_radius = unique_R_bin_cents_mas[j]
+        where_cur_radius = np.where( R_bin_cents_mas == this_radius )
+        
+        axs[j].plot( phi_bin_cents_mas[where_cur_radius], 
+                     kt_vR[where_cur_radius], 
+                     color='Red', alpha=0.2  
+                    )
+
+fig.savefig('solution_velocities.pdf')
+
+# ----------------------------------------------------------------------------
+
+# ### Plot the velocities of the data and good samples instead of the solutions
+# 
+# ## Read in the master
+# print('Reading good full sample linear models...')
+# master_filename = './'+FILENAME+'_samples_good_lm.pickle'
+# with open(master_filename,'rb') as f:
+#     lm_samples = pickle.load(f)
+# ##wi 
+# 
+# R_bin_cents_mas, phi_bin_cents_mas = lm_mas.get_bs_sample_positions()
+# unique_R_bin_cents_mas = np.unique(R_bin_cents_mas)
+# 
+# fig, axs = lm_mas.plot_velocity_known_m_b_phi(velocity_type='vR')
+# 
+# # Loop over each solution and plot the data
+# for i in range( n_good_matches ):
+# 
+#     # Load the LinearModelSolution
+#     lm_samp = lm_samples[i]
+# 
+#     pdb.set_trace()
+# 
+#     # th_b = lm_sol.th_b
+#     # th_pa = lm_sol.th_pa
+#     # soln_bar_omega_b = lm_sol.bar_omega_b
+#     # soln_bar_af = lm_sol.bar_af
+# 
+#     # where_bar_model = np.where( (bar_model_omegab_vals == soln_bar_omega_b) &
+#     #                             (bar_model_af_vals == soln_bar_af) )[0]
+#     # 
+#     # # Load the Kuijken & Tremaine data
+#     # kt = ast1501.potential.kuijken_potential(b_a=th_b, phib=th_pa)
+#     # kt_vR = kt.kuijken_vr(R=R_bin_cents_mas, phi=phi_bin_cents_mas)
+#     # 
+#     # # Perturb the solution?
+#     # # kt_vR_pert = np.random.normal(loc=0.0, scale=1.0, size=n_pts_mas) * vR_err_mas
+#     # 
+#     # # Interpolate on the bar model
+#     # vR_bar, vT_bar = ast1501.abc.interpolate_bar_model(R_bin_cents_mas, 
+#     #     phi_bin_cents_mas, bar_models[where_bar_model])
+#     # 
+#     # kt_vR = kt_vR + vR_bar # + kt_vR_pert
+# 
+#     samp_R,samp_phi = lm_samp.get_bs_sample_positions()
+#     samp_vR,_,_,_ = lm_samp.get_bs_velocities()
+#     samp_R_unique = np.unique(samp_R)
+# 
+#     # Loop over radii
+#     for j in range( len(samp_R_unique) ):
+# 
+#         this_radius = samp_R_unique[j]
+#         where_cur_radius = np.where( samp_R == this_radius )
+#         axs[j].plot( samp_phi[where_cur_radius], 
+#                      samp_vR[where_cur_radius], 
+#                      color='Red', alpha=0.2  
+#                     )
+# 
+# fig.savefig('solution_sample_velocities.pdf')
 
 # ----------------------------------------------------------------------------
 

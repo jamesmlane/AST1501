@@ -4,8 +4,8 @@
 
 # Run parameters
 FILENAME: 'August29'
-N_ABC_SAMPLES: 25000
-TH_B_LOW: 0.8
+N_ABC_SAMPLES: 50000
+TH_B_LOW: 0.7
 TH_B_HI: 1.0
 TH_PA_LOW: 0.0
 TH_PA_HI: np.pi
