@@ -254,7 +254,7 @@ for i in range( n_good_matches ):
     vR_bar, vT_bar = ast1501.abc.interpolate_bar_model(R_bin_cents_mas, 
         phi_bin_cents_mas, bar_models[where_bar_model])
         
-    kt_vR = vR_bar# kt_vR + vR_bar # + kt_vR_pert
+    kt_vR = kt_vR + vR_bar # + kt_vR_pert
     
     # Loop over radii
     for j in range( len(unique_R_bin_cents_mas) ):
@@ -271,8 +271,8 @@ fig.savefig('solution_velocities.pdf')
 
 # ----------------------------------------------------------------------------
 
-# ### Plot the velocities of the data and good samples instead of the solutions
-# 
+### Plot the velocities of the data and good samples instead of the solutions
+
 # ## Read in the master
 # print('Reading good full sample linear models...')
 # master_filename = './'+FILENAME+'_samples_good_lm.pickle'

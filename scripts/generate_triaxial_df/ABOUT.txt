@@ -1,1 +1,0 @@
-Make DFs for just a triaxial halo

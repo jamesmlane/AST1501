@@ -1,0 +1,21 @@
+3 evaluations
+Parameters
+==========
+
+NCORES: 2, 
+TIMES: [ 0. -2.] Gyr, 
+RRANGE: 5, 7, 
+PHIRANGE: -3.141592653589793, 3.141592653589793, 
+DR: 2, 
+DPHI: 15, 
+VPARMS: 20, 20, 8, 8, 
+SIGMAPARMS: 30, 20, 20, 
+SCALEPARMS: 2, 9.8, 7.6, 
+EVAL_THRESH: 0.0001, 
+==========
+
+R=6.0 kpc, phi=-3.0 rad, t=13 s
+R=6.0 kpc, phi=0.0 rad, t=13 s
+R=6.0 kpc, phi=3.0 rad, t=12 s
+
+26 s total

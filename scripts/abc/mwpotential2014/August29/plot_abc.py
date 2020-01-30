@@ -222,8 +222,6 @@ fig.savefig('model_amplitudes.pdf')
 
 # ----------------------------------------------------------------------------
 
-pdb.set_trace()
-
 ### Plot the velocities of the data and solutions
 
 R_bin_cents_mas, phi_bin_cents_mas = lm_mas.get_bs_sample_positions()
@@ -333,6 +331,11 @@ fig.savefig('solution_velocities.pdf')
 
 # ----------------------------------------------------------------------------
 
+where_shift_th_pa = np.where( match_th_pa > np.pi/2 )
+new_th_pa = match_th_pa[where_shift_th_pa] - np.pi
+
+pdb.set_trace()
+
 ### Plot the results
 
 # Just plot single PDFs
@@ -371,5 +374,27 @@ staircase_data = np.array([  match_th_b,
                      ]).T
 staircase_labels = [r'$b/a$',r'$\phi_{b}$ [rad]']
                     #r'$\Omega_{b}$ [km/s/kpc]',r'$A_{f}$']
-fig, ax = ast1501.abc.staircase_plot_kernel(staircase_data, staircase_labels)
+fig, axs = ast1501.abc.staircase_plot_kernel(staircase_data, staircase_labels)
+
+axs[1,0].set_yticks([0,np.pi/4,np.pi/2,3*np.pi/4,np.pi])
+axs[1,0].set_yticklabels([r'0',r'$\pi/4$',r'$\pi/2$',r'$3\pi/4$',r'$\pi$'])
+axs[1,1].set_xticks([0,np.pi/4,np.pi/2,3*np.pi/4,np.pi])
+axs[1,1].set_xticklabels([r'0',r'$\pi/4$',r'$\pi/2$',r'$3\pi/4$',r'$\pi$'])
+axs[1,1].set_xlabel(r'$\phi_{b}$ [rad]')
+
+# axs[0,0].set_xlim(0.69,1.01)
+# axs[1,0].set_xlim(0.69,1.01)
+
+fig.subplots_adjust(wspace=0, hspace=0)
+fig.set_facecolor('White')
 fig.savefig('staircase_plots.pdf', plot_median=True)
+
+b_a_median = np.median( match_th_b )
+b_a_upper_68ci = np.sort( match_th_b )[ int((0.5+0.68/2)*n_good_matches) ]
+b_a_lower_68ci = np.sort( match_th_b )[ int((0.5-0.68/2)*n_good_matches) ]
+b_a_t1_68ci = np.sort( match_th_b )[ int( (1-0.68)*n_good_matches ) ]
+b_a_t1_95ci = np.sort( match_th_b )[ int( (1-0.95)*n_good_matches ) ]
+
+print('b/a:')
+print('Median: '+str(b_a_median))
+print('68% CI: '+str(b_a_lower_68ci)+', '+str(b_a_upper_68ci))
