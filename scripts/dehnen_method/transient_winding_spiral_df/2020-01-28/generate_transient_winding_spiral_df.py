@@ -21,6 +21,7 @@ import sys, os, pdb, time, copy
 ## galpy and Astropy
 from astropy import units as apu
 from galpy import orbit, potential, df, actionAngle
+from galpy.util import bovy_conversion as gpconv
 
 ## Project specific
 sys.path.append('../../../../src')
@@ -62,16 +63,16 @@ _RADIAL_SCALE, _SIGMA_VR_SCALE, _SIGMA_VZ_SCALE = _SCALEPARMS
 _EVAL_THRESH = 0.0001   # DF evaluation threshold
 
 _N_ARMS = [2,3,4]
-_POT_PHI0 = np.array([75,67,64])*apu.deg
-_POT_AMP = 0.0136 * apu.M_sun / (apu.pc**3)
-_POT_H = 1*apu.kpc
-_POT_RS = 2.4*apu.kpc
-_POT_ALPHA = 12*apu.deg
-_POT_RREF = 8*apu.kpc # Probably???
-_POT_OMEGA = 0*apu.km/apu.s/apu.kpc
-_POT_LIFETIME = np.array([0.120,0.120,0.240,0.240])*apu.Gyr
+_POT_PHI0 = np.array([75,67,64]) * (np.pi/180) # * apu.deg
+_POT_AMP = 0.0136 / gpconv.dens_in_msolpc3(ro=8,vo=220) # * apu.M_sun / (apu.pc**3)
+_POT_H = 1 / 8. # *apu.kpc
+_POT_RS = 2.4 / 8. # *apu.kpc
+_POT_ALPHA = 12 * (np.pi/180) # *apu.deg
+_POT_RREF = 8 / 8. # *apu.kpc # Probably???
+_POT_OMEGA = 0 / gpconv.freq_in_kmskpc(ro=8,vo=220) # *apu.km/apu.s/apu.kpc
+_POT_LIFETIME = np.array([0.120,0.120,0.240,0.240]) / gpconv.time_in_Gyr(ro=8,vo=220) # *apu.Gyr
 _POT_SIGMA = _POT_LIFETIME / 5.6
-_POT_T0 = np.array([-0.86,-0.29,-0.89,-0.29])*apu.Gyr
+_POT_T0 = np.array([-0.86,-0.29,-0.89,-0.29]) / gpconv.time_in_Gyr(ro=8,vo=220) # *apu.Gyr
 _POT_BETA = -0.1
 
 # ----------------------------------------------------------------------------
