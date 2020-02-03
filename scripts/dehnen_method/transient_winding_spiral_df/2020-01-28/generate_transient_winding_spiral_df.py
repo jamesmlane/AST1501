@@ -71,8 +71,10 @@ _POT_ALPHA = 12 * (np.pi/180) # *apu.deg
 _POT_RREF = 8 / 8. # *apu.kpc # Probably???
 _POT_OMEGA = 0 / gpconv.freq_in_kmskpc(ro=8,vo=220) # *apu.km/apu.s/apu.kpc
 _POT_LIFETIME = np.array([0.120,0.120,0.240,0.240]) / gpconv.time_in_Gyr(ro=8,vo=220) # *apu.Gyr
+_POT_LIFETIME_PRINT = np.array([0.120,0.120,0.240,0.240])
 _POT_SIGMA = _POT_LIFETIME / 5.6
 _POT_T0 = np.array([-0.86,-0.29,-0.89,-0.29]) / gpconv.time_in_Gyr(ro=8,vo=220) # *apu.Gyr
+_POT_T0_PRINT = np.array([-0.86,-0.29,-0.89,-0.29])
 _POT_BETA = -0.1
 
 # ----------------------------------------------------------------------------
@@ -98,7 +100,7 @@ for i in range( len(_N_ARMS) ):
     for j in range( len(_POT_LIFETIME) ):
 
         # Write the parameters in the log
-        output_str = '_LIFETIME_'+str(_POT_LIFETIME[j].value)+'_T0_'+str(_POT_T0[j].value)
+        output_str = '_LIFETIME_'+str(_POT_LIFETIME_PRINT[j])+'_T0_'+str(_POT_T0_PRINT[j])
         _LOGFILE = open('./log'+output_str+'.txt','w') 
         
         ### Make potentials and DFs
