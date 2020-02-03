@@ -717,6 +717,7 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
         fig, ax, _ = hist_df(dfp, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=True)
         ax.set_title('R='+str(round(r,2))+' kpc, phi='+str(round(phi,2))+' rad')
         fig.savefig( './R-'+str(round(r,2))+'_phi-'+str(round(phi,2))+'_dfp.pdf' )
+        plt.close(fig)
     ##fi
     
     if verbose > 0:
