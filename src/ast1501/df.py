@@ -824,10 +824,6 @@ def evaluate_df_polar_parallel(r,phi,use_pot,use_df,velocity_parms,times,ncores,
         use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
         evaluator_threshold, plot_df, coords_in_xy, verbose))
     
-    evaluate_df_polar(r[0], phi[0], 
-        use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
-        evaluator_threshold, plot_df, coords_in_xy, verbose)
-    
     # Evaluate the results in parallel
     results = multi.parallel_map(lambda_func, 
         np.arange(0,n_calls,1,dtype='int'),  
