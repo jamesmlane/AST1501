@@ -146,7 +146,7 @@ def evaluate_df_adaptive_vRvT(R_z_phi,
             # Integrate the orbit and evaluate the perturbed DF
             else:
                 cur_o.integrate(times, pot)
-                df[ cur_point[0] , cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                df[ cur_point[0] , cur_point[1] ] = df_evaluator(cur_o(times))[-1]
             ##ie
             computed_df[ cur_point[0] , cur_point[1] ] = 1.
             
@@ -187,7 +187,7 @@ def evaluate_df_adaptive_vRvT(R_z_phi,
                     ##fi
                     else:
                         check_around_o.integrate(times,pot)
-                        df[ act_i , act_j ] = df_evaluator(check_around_o(times[-1]))
+                        df[ act_i , act_j ] = df_evaluator(check_around_o(times))[-1]
                     ##ie
                     check_df_around[i,j] = df[ act_i , act_j ]
                     computed_df[ act_i , act_j ] = 1.
@@ -270,7 +270,7 @@ def evaluate_df_adaptive_vRvT(R_z_phi,
                     df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
                 else:
                     cur_o.integrate(times,pot)
-                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times))[-1]
                 ##ie
                 computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
@@ -322,7 +322,7 @@ def evaluate_df_adaptive_vRvT(R_z_phi,
                     df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
                 else:
                     cur_o.integrate(times,pot)
-                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times))[-1]
                 ##ie
                 computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
@@ -395,7 +395,7 @@ def evaluate_df_adaptive_vRvT(R_z_phi,
                     df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
                 else:                  
                     cur_o.integrate(times,pot)
-                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times))[-1]
                 ##ie
                 computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
@@ -447,7 +447,7 @@ def evaluate_df_adaptive_vRvT(R_z_phi,
                     df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o)  
                 else:
                     cur_o.integrate(times,pot)
-                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times[-1]))
+                    df[ cur_point[0], cur_point[1] ] = df_evaluator(cur_o(times))[-1]
                 ##ie
                 computed_df[ cur_point[0], cur_point[1] ] = 1.
             ##ie
@@ -823,6 +823,10 @@ def evaluate_df_polar_parallel(r,phi,use_pot,use_df,velocity_parms,times,ncores,
     lambda_func = (lambda x: evaluate_df_polar(r[x], phi[x], 
         use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
         evaluator_threshold, plot_df, coords_in_xy, verbose))
+    
+    evaluate_df_polar(r[0], phi[0], 
+        use_pot, use_df, velocity_parms, times, sigma_vR, sigma_vT, 
+        evaluator_threshold, plot_df, coords_in_xy, verbose)
     
     # Evaluate the results in parallel
     results = multi.parallel_map(lambda_func, 
