@@ -722,6 +722,10 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
     
     if verbose > 0:
         print( 'Done R: '+str(round(r,2))+' phi: '+str(round(phi,2)) )
+        if verbose > 1:
+            print('vR mean: '+str(round(vR_mean,3)))
+            print('vT mean: '+str(round(vT_mean,3))+'\n')
+        ##fi
     ##fi
     
     output_array = np.array([r,phi,x,y,vR_mean,vR_std,vT_mean,vT_std,logtext])
