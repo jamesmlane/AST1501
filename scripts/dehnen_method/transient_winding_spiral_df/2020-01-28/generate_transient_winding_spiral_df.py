@@ -46,8 +46,8 @@ _TIMES = -np.array([0,_T_EVOLVE]) * apu.Gyr
 # Spatial
 _RRANGE = [5,15]                    # Range in galactocentric R
 _PHIRANGE = [-np.pi/2,np.pi/2]      # Range in galactocentric phi
-_DR = 5.0                           # Bin size in R
-_DPHI = 5.0                         # Bin size in Phi (arc in kpc)
+_DR = 1.0                           # Bin size in R
+_DPHI = 1.0                         # Bin size in Phi (arc in kpc)
 _GRIDR, _GRIDPHI = ast1501.df.generate_grid_radial( _RRANGE, 
                                                     _PHIRANGE, 
                                                     _DR, 
@@ -55,7 +55,7 @@ _GRIDR, _GRIDPHI = ast1501.df.generate_grid_radial( _RRANGE,
                                                     delta_phi_in_arc=True )
 
 # Distribution Function
-_VPARMS = [20,20,8,8]   # dvT,dvR,nsigma,nsigma
+_VPARMS = [5,5,8,8]   # dvT,dvR,nsigma,nsigma
 _SIGMAPARMS = ast1501.df.get_vsigma()
 _SIGMA_VR,_SIGMA_VT,_SIGMA_VZ = _SIGMAPARMS
 _SCALEPARMS =  ast1501.df.get_scale_lengths()
@@ -63,17 +63,17 @@ _RADIAL_SCALE, _SIGMA_VR_SCALE, _SIGMA_VZ_SCALE = _SCALEPARMS
 _EVAL_THRESH = 0.0001   # DF evaluation threshold
 
 _N_ARMS = [2,3,4]
-_POT_PHI0 = np.array([75,67,64]) * (np.pi/180) # * apu.deg
-_POT_AMP = 0.0136 / gpconv.dens_in_msolpc3(ro=8,vo=220) # * apu.M_sun / (apu.pc**3)
-_POT_H = 1 / 8. # *apu.kpc
-_POT_RS = 2.4 / 8. # *apu.kpc
-_POT_ALPHA = 12 * (np.pi/180) # *apu.deg
-_POT_RREF = 8 / 8. # *apu.kpc # Probably???
-_POT_OMEGA = 0 / gpconv.freq_in_kmskpc(ro=8,vo=220) # *apu.km/apu.s/apu.kpc
-_POT_LIFETIME = np.array([0.120,0.120,0.240,0.240]) / gpconv.time_in_Gyr(ro=8,vo=220) # *apu.Gyr
+_POT_PHI0 = np.array([75,67,64])* apu.deg  #* (np.pi/180) # 
+_POT_AMP = 0.0136* apu.M_sun / (apu.pc**3) # / gpconv.dens_in_msolpc3(ro=8,vo=220)
+_POT_H = 1*apu.kpc #  / 8.
+_POT_RS = 2.4*apu.kpc # / 8. 
+_POT_ALPHA = 12*apu.deg #  * (np.pi/180)
+_POT_RREF = 8*apu.kpc # Probably???  / 8.
+_POT_OMEGA = 0*apu.km/apu.s/apu.kpc # / gpconv.freq_in_kmskpc(ro=8,vo=220) # 
+_POT_LIFETIME = np.array([0.120,0.120,0.240,0.240])*apu.Gyr #  / gpconv.time_in_Gyr(ro=8,vo=220)
 _POT_LIFETIME_PRINT = np.array([0.120,0.120,0.240,0.240])
 _POT_SIGMA = _POT_LIFETIME / 5.6
-_POT_T0 = np.array([-0.86,-0.29,-0.89,-0.29]) / gpconv.time_in_Gyr(ro=8,vo=220) # *apu.Gyr
+_POT_T0 = np.array([-0.86,-0.29,-0.89,-0.29])*apu.Gyr #  / gpconv.time_in_Gyr(ro=8,vo=220) # 
 _POT_T0_PRINT = np.array([-0.86,-0.29,-0.89,-0.29])
 _POT_BETA = -0.1
 
@@ -99,8 +99,10 @@ evaluation_counter = 0
 for i in range( len(_N_ARMS) ):
     for j in range( len(_POT_LIFETIME) ):
 
+        if i > 0: continue
+
         # Write the parameters in the log
-        output_str = '_LIFETIME_'+str(_POT_LIFETIME_PRINT[j])+'_T0_'+str(_POT_T0_PRINT[j])
+        output_str = 'N_ARMS_'+str(_N_ARMS[i])+'_LIFETIME_'+str(_POT_LIFETIME_PRINT[j])+'_T0_'+str(_POT_T0_PRINT[j])
         _LOGFILE = open('./log'+output_str+'.txt','w') 
         
         ### Make potentials and DFs
