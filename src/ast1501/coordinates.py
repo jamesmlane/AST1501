@@ -78,9 +78,9 @@ def calculate_galactic_azimuth( gc_x,
     
     # Make the azimuth coordinate. Account for CW or CCW coordinates
     if cw:
-        gc_az = np.arctan2(y,x)
+        gc_az = np.arctan2(gc_y,gc_x)
     else:
-        gc_az = np.arctan2(-y,x)
+        gc_az = np.arctan2(-gc_y,gc_x)
     ##ie
     
     return gc_az    
