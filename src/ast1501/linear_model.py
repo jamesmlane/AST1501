@@ -1118,7 +1118,8 @@ class LinearModel():
     # Define some plotting routines
     def plot_velocity_known_m_b_phi(self, velocity_type, fig=None, axs=None, 
                                     phi_lim=[-np.pi/2,np.pi/2], 
-                                    plot_best_fit=True):
+                                    plot_best_fit=True, plot_kws={}, 
+                                    plot_errs=True):
         '''plot_velocity_known_m_b_phi
         
         Plot the velocities as a function of radius for a bootstrap sample.
@@ -1158,9 +1159,13 @@ class LinearModel():
             bin_phi = bs_samp[i][3]
             
             # Plot
-            axs[i].errorbar( bin_phi, bin_v, yerr=bin_v_err, fmt='o', 
-                ecolor='Black', marker='o', markerfacecolor='None', 
-                markeredgecolor='Black', markersize=5)
+            if plot_errs:
+                axs[i].errorbar( bin_phi, bin_v, yerr=bin_v_err, fmt='o', 
+                    ecolor='Black', marker='o', markerfacecolor='None', 
+                    markeredgecolor='Black', markersize=5)
+            else:
+                axs[i].scatter( bin_phi, bin_v, **plot_kws)
+            ##ie
         
             # Plot the best-fitting amplitude
             if plot_best_fit:
@@ -2741,7 +2746,8 @@ class LinearModel2():
     # Define some plotting routines
     def plot_velocity_known_m_b_phi(self, velocity_type, fig=None, axs=None, 
                                     phi_lim=[-np.pi/2,np.pi/2], 
-                                    plot_best_fit=True):
+                                    plot_best_fit=True, plot_kws={}, 
+                                    plot_errs=True):
         '''plot_velocity_known_m_b_phi
         
         Plot the velocities as a function of radius for a bootstrap sample.
@@ -2781,9 +2787,13 @@ class LinearModel2():
             bin_phi = bs_samp[i][3]
             
             # Plot
-            axs[i].errorbar( bin_phi, bin_v, yerr=bin_v_err, fmt='o', 
-                ecolor='Black', marker='o', markerfacecolor='None', 
-                markeredgecolor='Black', markersize=5)
+            if plot_errs:
+                axs[i].errorbar( bin_phi, bin_v, yerr=bin_v_err, fmt='o', 
+                    ecolor='Black', marker='o', markerfacecolor='None', 
+                    markeredgecolor='Black', markersize=5)
+            else:
+                axs[i].scatter( bin_phi, bin_v, **plot_kws)
+            ##ie
         
             # Plot the best-fitting amplitude
             if plot_best_fit:
