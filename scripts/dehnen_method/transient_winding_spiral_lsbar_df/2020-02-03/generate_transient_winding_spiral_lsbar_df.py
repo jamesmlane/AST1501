@@ -8,7 +8,7 @@
 
 ### Docstrings and metadata:
 ''' Script to run parallelized MWPotential2014 DF evaluation with transient
-winding spiral arms
+winding spiral arms and a long slow bar.
 '''
 __author__ = "James Lane"
 
@@ -34,8 +34,8 @@ import ast1501.util
 ### Parameters
 
 # General
-_NCORES = 12                        # Number of cores to use
-_VERBOSE = 2                        # Degree of verbosity
+_NCORES = 8                         # Number of cores to use
+_VERBOSE = 0                        # Degree of verbosity
 _PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
 
@@ -89,6 +89,13 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
                             pot= potential.MWPotential2014, 
                             aA= _AA)
 
+_LSBAR_OMEGAB = 1.35
+_LSBAR_RB = 5/8
+_LSBAR_AF = 0.01
+_LSBAR_POT = potential.DehnenBarPotential(omegab=_LSBAR_OMEGAB, rb=_LSBAR_RB, 
+    Af=_LSBAR_AF, tsteady=1/gpconv.time_in_Gyr(vo=220,ro=8), 
+    tform=-2/gpconv.time_in_Gyr(vo=220,ro=8))
+
 # ----------------------------------------------------------------------------
 
 ### Evaluate the DF
@@ -102,7 +109,7 @@ for i in range( len(_N_ARMS) ):
         if i > 0: continue
 
         # Write the parameters in the log
-        output_str = '_N_ARMS_'+str(_N_ARMS[i])+'_LIFETIME_'+str(_POT_LIFETIME_PRINT[j])+'_T0_'+str(_POT_T0_PRINT[j])
+        output_str = 'N_ARMS_'+str(_N_ARMS[i])+'_LIFETIME_'+str(_POT_LIFETIME_PRINT[j])+'_T0_'+str(_POT_T0_PRINT[j])
         _LOGFILE = open('./log'+output_str+'.txt','w') 
         
         ### Make potentials and DFs
@@ -113,7 +120,7 @@ for i in range( len(_N_ARMS) ):
             pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
         _SPIRAL_ARM_POT_TDEP = potential.GaussianAmplitudeWrapperPotential(
             pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[j], sigma=_POT_SIGMA[j])
-        _POT = [potential.MWPotential2014,_SPIRAL_ARM_POT_TDEP]
+        _POT = [potential.MWPotential2014,_SPIRAL_ARM_POT_TDEP,_LSBAR_POT]
 
         _LOGFILE.write(str(len(_GRIDR))+' evaluations\n')
         write_params = [_NCORES,_TIMES,_N_ARMS[i],_POT_PHI0[i],_POT_LIFETIME,
