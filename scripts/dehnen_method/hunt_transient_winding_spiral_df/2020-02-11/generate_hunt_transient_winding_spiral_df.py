@@ -36,7 +36,7 @@ import ast1501.util
 # General
 _NCORES = 10                        # Number of cores to use
 _VERBOSE = 0                        # Degree of verbosity
-_PLOT_DF = True                     # Plot the output DF
+_PLOT_DF = False                    # Plot the output DF
 _COORD_IN_XY = False                # Input coordinate grid in XY or polar?
 
 # Timing
