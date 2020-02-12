@@ -64,7 +64,7 @@ _EVAL_THRESH = 0.0001   # DF evaluation threshold
 
 _N_ARMS = 2
 _POT_PHI0 = 75*apu.deg  #* (np.pi/180) # 
-_POT_AMP = 0.0136* apu.M_sun / (apu.pc**3) # / gpconv.dens_in_msolpc3(ro=8,vo=220)
+_POT_AMP = 0.136* apu.M_sun / (apu.pc**3) # / gpconv.dens_in_msolpc3(ro=8,vo=220)
 _POT_H = 1*apu.kpc #  / 8.
 _POT_RS = 2.4*apu.kpc # / 8. 
 _POT_ALPHA = 12*apu.deg #  * (np.pi/180)
@@ -89,25 +89,40 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 
 _LSBAR_OMEGAB = 1.35
 _LSBAR_RB = 5/8
-_LSBAR_AF = 0.01
+_LSBAR_AF = 0.02
 _LSBAR_POT = potential.DehnenBarPotential(omegab=_LSBAR_OMEGAB, rb=_LSBAR_RB, 
     Af=_LSBAR_AF, tsteady=1/gpconv.time_in_Gyr(vo=220,ro=8), 
     tform=-2/gpconv.time_in_Gyr(vo=220,ro=8))
 
 ### Make spiral potentials and DFs
-_SPIRAL_ARM_POT = potential.SpiralArmsPotential(N=_N_ARMS, 
-    amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA, r_ref=_POT_RREF, 
-    Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
-_SPIRAL_ARM_POT_COROT = potential.CorotatingRotationWrapperPotential(
-    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 
-# Make the 3 time dependent potentials
+# Make the 3 time dependent potentials. Use different pitch angles for all
+# three models. Steepest angle furthest in the past and shallowest angle 
+# today.
+_SPIRAL_ARM_POT1 = potential.SpiralArmsPotential(N=_N_ARMS, 
+    amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA*2, r_ref=_POT_RREF, 
+    Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
+_SPIRAL_ARM_POT_COROT1 = potential.CorotatingRotationWrapperPotential(
+    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 _SPIRAL_ARM_POT_TDEP_1 = potential.GaussianAmplitudeWrapperPotential(
     pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[0], sigma=_POT_SIGMA)
+    
+_SPIRAL_ARM_POT2 = potential.SpiralArmsPotential(N=_N_ARMS, 
+    amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA*1.5, r_ref=_POT_RREF, 
+    Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
+_SPIRAL_ARM_POT_COROT2 = potential.CorotatingRotationWrapperPotential(
+    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 _SPIRAL_ARM_POT_TDEP_2 = potential.GaussianAmplitudeWrapperPotential(
     pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[1], sigma=_POT_SIGMA)
+    
+_SPIRAL_ARM_POT3 = potential.SpiralArmsPotential(N=_N_ARMS, 
+    amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA, r_ref=_POT_RREF, 
+    Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
+_SPIRAL_ARM_POT_COROT3 = potential.CorotatingRotationWrapperPotential(
+    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 _SPIRAL_ARM_POT_TDEP_3 = potential.GaussianAmplitudeWrapperPotential(
     pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[2], sigma=_POT_SIGMA)
+
 
 # Make the total potential
 _POT = [potential.MWPotential2014,_SPIRAL_ARM_POT_TDEP_1,
