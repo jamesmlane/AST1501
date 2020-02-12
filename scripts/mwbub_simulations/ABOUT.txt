@@ -1,0 +1,1 @@
+vR.p and vT.p are both bs_v#_samples from linear model
