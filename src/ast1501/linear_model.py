@@ -2747,7 +2747,7 @@ class LinearModel2():
     def plot_velocity_known_m_b_phi(self, velocity_type, fig=None, axs=None, 
                                     phi_lim=[-np.pi/2,np.pi/2], 
                                     plot_best_fit=True, plot_kws={}, 
-                                    plot_errs=True):
+                                    plot_errs=True, twocolumn=True):
         '''plot_velocity_known_m_b_phi
         
         Plot the velocities as a function of radius for a bootstrap sample.
@@ -2773,8 +2773,13 @@ class LinearModel2():
         ##fi
         
         if fig is None and axs is None:
-            fig = plt.figure( figsize=(5,self.n_R_bins*2) )
-            axs = fig.subplots( nrows=self.n_R_bins, ncols=1 )
+            if twocolumn:
+                fig = plt.figure( figsize=(15,self.n_R_bins*1.25) )
+                axs = fig.subplots( nrows=int(self.n_R_bins/2), ncols=2 )
+                axs = axs.T.reshape(self.n_R_bins)
+            else:
+                fig = plt.figure( figsize=(5,self.n_R_bins*2) )
+                axs = fig.subplots( nrows=self.n_R_bins, ncols=1 )
         ##fi
         
         # Loop over all radii
