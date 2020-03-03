@@ -64,7 +64,7 @@ _EVAL_THRESH = 0.0001   # DF evaluation threshold
 
 _N_ARMS = [2,3,4]
 _POT_PHI0 = np.array([75,67,64])* apu.deg  #* (np.pi/180) # 
-_POT_AMP = 0.0136* apu.M_sun / (apu.pc**3) # / gpconv.dens_in_msolpc3(ro=8,vo=220)
+_POT_AMP = 0.136* apu.M_sun / (apu.pc**3) # / gpconv.dens_in_msolpc3(ro=8,vo=220)
 _POT_H = 1*apu.kpc #  / 8.
 _POT_RS = 2.4*apu.kpc # / 8. 
 _POT_ALPHA = 12*apu.deg #  * (np.pi/180)
