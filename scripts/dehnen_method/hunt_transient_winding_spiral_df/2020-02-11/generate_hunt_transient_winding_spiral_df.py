@@ -103,25 +103,25 @@ _SPIRAL_ARM_POT1 = potential.SpiralArmsPotential(N=_N_ARMS,
     amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA*2, r_ref=_POT_RREF, 
     Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
 _SPIRAL_ARM_POT_COROT1 = potential.CorotatingRotationWrapperPotential(
-    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
+    pot=_SPIRAL_ARM_POT1, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 _SPIRAL_ARM_POT_TDEP_1 = potential.GaussianAmplitudeWrapperPotential(
-    pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[0], sigma=_POT_SIGMA)
+    pot=_SPIRAL_ARM_POT_COROT1, to=_POT_T0[0], sigma=_POT_SIGMA)
     
 _SPIRAL_ARM_POT2 = potential.SpiralArmsPotential(N=_N_ARMS, 
     amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA*1.5, r_ref=_POT_RREF, 
     Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
 _SPIRAL_ARM_POT_COROT2 = potential.CorotatingRotationWrapperPotential(
-    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
+    pot=_SPIRAL_ARM_POT2, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 _SPIRAL_ARM_POT_TDEP_2 = potential.GaussianAmplitudeWrapperPotential(
-    pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[1], sigma=_POT_SIGMA)
+    pot=_SPIRAL_ARM_POT_COROT2, to=_POT_T0[1], sigma=_POT_SIGMA)
     
 _SPIRAL_ARM_POT3 = potential.SpiralArmsPotential(N=_N_ARMS, 
     amp=_POT_AMP, phi_ref=_POT_PHI0, alpha=_POT_ALPHA, r_ref=_POT_RREF, 
     Rs=_POT_RS, H=_POT_H, omega=_POT_OMEGA, Cs=[1,])
 _SPIRAL_ARM_POT_COROT3 = potential.CorotatingRotationWrapperPotential(
-    pot=_SPIRAL_ARM_POT, vpo=220*apu.km/apu.s, beta=_POT_BETA)
+    pot=_SPIRAL_ARM_POT3, vpo=220*apu.km/apu.s, beta=_POT_BETA)
 _SPIRAL_ARM_POT_TDEP_3 = potential.GaussianAmplitudeWrapperPotential(
-    pot=_SPIRAL_ARM_POT_COROT, to=_POT_T0[2], sigma=_POT_SIGMA)
+    pot=_SPIRAL_ARM_POT_COROT3, to=_POT_T0[2], sigma=_POT_SIGMA)
 
 
 # Make the total potential
