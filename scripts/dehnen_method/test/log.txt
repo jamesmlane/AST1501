@@ -1,0 +1,15 @@
+4 evaluations
+Parameters
+==========
+
+NCORES: 1, 
+TIMES: [ 0. -2.] Gyr, 
+XRANGE: 8, 10, 
+YRANGE: -1, 1, 
+DX: 1.0, 
+DY: 1.0, 
+VPARMS: 20, 20, 8, 8, 
+SIGMAPARMS: 30, 20, 20, 
+SCALEPARMS: 2, 9.8, 7.6, 
+EVAL_THRESH: 0.0001, 
+==========
