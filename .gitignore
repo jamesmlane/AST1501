@@ -2,8 +2,17 @@
 
 # Data directories. Big files that are
 # easily generated. Don't save.
+# Plotting directories too
 data/astronn/
 data/generated
+*plots/
+
+# Plots in Dehnen method directories
+scripts/dehnen_method/**/*.pdf
+scripts/dehnen_method/**/*.png
+
+# Presentations
+presentations/
 
 # Scratch space
 scratch/
