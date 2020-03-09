@@ -91,7 +91,7 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 
 _LSBAR_OMEGAB = 1.35
 _LSBAR_RB = 5/8
-_LSBAR_AF = 0.01
+_LSBAR_AF = 0.02
 _LSBAR_POT = potential.DehnenBarPotential(omegab=_LSBAR_OMEGAB, rb=_LSBAR_RB, 
     Af=_LSBAR_AF, tsteady=1/gpconv.time_in_Gyr(vo=220,ro=8), 
     tform=-2/gpconv.time_in_Gyr(vo=220,ro=8))
