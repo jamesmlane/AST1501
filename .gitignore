@@ -7,9 +7,13 @@ data/astronn/
 data/generated
 *plots/
 
-# Plots in Dehnen method directories
+# Results in Dehnen method directories
 scripts/dehnen_method/**/*.pdf
 scripts/dehnen_method/**/*.png
+scripts/dehnen_method/**/log*.txt
+scripts/dehnen_method/**/pull*.bash
+scripts/dehnen_method/**/data*.npy
+
 
 # Presentations
 presentations/
