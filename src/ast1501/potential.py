@@ -33,6 +33,9 @@ from galpy import orbit
 from galpy import potential
 from galpy.util import bovy_conversion as gpconv
 
+## Project
+from . import coordinates as ast1501_coordinates
+
 # ----------------------------------------------------------------------------
 
 # Define local paths. Always use os.path.join
@@ -671,4 +674,76 @@ def make_LongSlowBar():
         tsteady=1/gpconv.time_in_Gyr(ro=8,vo=220), 
         tform=2/gpconv.time_in_Gyr(ro=8,vo=220))
     
+#def
+
+def make_Sgr_mop(time, ics='gaia_dr2', return_orbit=False):
+    '''make_Sgr_mop:
+    
+    Make a moving object potential corresponding to a Sgr orbit
+    
+    Args:
+        time (float) - Lookback time at which to begin the orbit (in Gyr, no apu)
+        ics (str) - Initial conditions to use. Only option is gaia_dr2 => the 
+            Gaia DR2 astrometry-based kinematics
+        return_orbit (bool) - Return the orbit along with the MOP
+
+    Returns:
+        sgr_mop (Potential) - Moving object potential
+        o_sgr_fwd (Orbit) - Sgr orbit
+    '''
+    
+    helio_vx = -11.1
+    helio_vy = 12.24 + 220
+    helio_vz = 7.25
+    helio_R = 8.2
+    helio_z = 0.023
+    
+    if ics=='gaia_dr2':
+        sgr_x, sgr_y, sgr_z = [-25.2,2.5,-6.4]
+        sgr_u, sgr_v, sgr_w = [-221.3,-266.5,197.4]
+
+        sgr_x += helio_R
+        sgr_z += helio_z
+        sgr_vx = sgr_u + helio_vx
+        sgr_vy = sgr_v + helio_vy
+        sgr_vz = sgr_w + helio_vz
+
+        sgr_R = np.sqrt( np.square(sgr_x) + np.square(sgr_y) )
+        sgr_phi = ast1501_coordinates.calculate_galactic_azimuth(sgr_x,sgr_y,cw=True,lh=True)
+        sgr_vR = sgr_vx * np.cos(sgr_phi) + sgr_vy * np.sin(sgr_phi)
+        sgr_vT = -sgr_vx * np.sin(sgr_phi) + sgr_vy * np.cos(sgr_phi)
+        
+        # Make the orbit
+        sgr_vxvv = [sgr_R*apu.kpc, sgr_vR*apu.km/apu.s, sgr_vT*apu.km/apu.s, 
+                    sgr_z*apu.kpc, sgr_vz*apu.km/apu.s, sgr_phi*apu.rad]
+        o_sgr = orbit.Orbit(sgr_vxvv)
+        o_sgr.turn_physical_on()
+    ##fi
+    
+    print('Setting up potential for Sgr MOP integration...')
+    pot = potential.MWPotential2014
+    n_snaps = 10000
+    times = np.linspace(0, -time, n_snaps) * apu.Gyr
+    
+    sgr_m = (14*(10**10))*apu.Msun
+    sgr_a = 13*apu.kpc
+    sgr_halo = potential.HernquistPotential(amp=sgr_m, a=sgr_a)
+    sgr_stlr = potential.HernquistPotential( (6.4*10**8)*apu.M_sun, 
+        0.85*apu.kpc )
+    sgr_pot = [sgr_halo,sgr_stlr]
+    sgr_dynfric = potential.ChandrasekharDynamicalFrictionForce(
+        GMs=sgr_m, rhm=(1+np.sqrt(2))*sgr_a, dens=pot)
+    pot_df = [pot,sgr_dynfric]
+    
+    print('Integrating Sgr MOP orbit...')
+    o_sgr.integrate(times, pot_df)
+    
+    sgr_mop = potential.MovingObjectPotential(o_sgr,
+        pot=sgr_pot)
+    
+    if return_orbit:
+        return sgr_mop, o_sgr, times
+    else:
+        return sgr_mop
+    ##ie
 #def
