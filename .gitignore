@@ -14,7 +14,6 @@ scripts/dehnen_method/**/log*.txt
 scripts/dehnen_method/**/pull*.bash
 scripts/dehnen_method/**/data*.npy
 
-
 # Presentations
 presentations/
 
@@ -27,8 +26,12 @@ scratch/
 # Transfer script
 sync_src_personal.bash
 
-# Notebook initialization script
+# Notebook stuff. Completely ignore notebooks, data & plotting directories
 notebooks/start_notebook.bash
+notebooks/sample.ipynb
+notebooks/**/*.ipynb
+notebooks/**/plots/
+notebooks/**/data/
 
 # Ignore the report directory
 report/*
