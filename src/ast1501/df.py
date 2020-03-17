@@ -714,9 +714,9 @@ def evaluate_df_polar(r,phi,pot,df,velocity_parms,times,
         fig = plt.figure( figsize=(5,5) )
         ax = fig.add_subplot(111)
         # Plot
-        fig, ax, _ = hist_df(dfp, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=True)
-        ax.set_title('R='+str(round(r,2))+' kpc, phi='+str(round(phi,2))+' rad')
-        fig.savefig( './R-'+str(round(r,2))+'_phi-'+str(round(phi,2))+'_dfp.pdf' )
+        fig, ax, _ = hist_df(dfp, vR_low, vR_hi, vT_low, vT_hi, fig, ax, log=False)
+        ax.set_title('R: '+str(round(r,1))+' kpc, phi: '+str(round(phi*180/np.pi,1))+' degrees')
+        fig.savefig( './R'+str(round(r,1))+'_phi'+str(round(phi*180/np.pi,1))+'_dfp.pdf' )
         plt.close(fig)
     ##fi
     
