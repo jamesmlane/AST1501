@@ -1,0 +1,4 @@
+2020-02-10 - Evaluate the DF over the standard grid
+
+2020-03-16 - Evaluate the DF over a select few locations and plot
+the DF to determine if it's doing what it should be
