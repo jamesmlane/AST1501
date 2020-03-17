@@ -676,15 +676,22 @@ def make_LongSlowBar():
     
 #def
 
-def make_Sgr_mop(time, ics='gaia_dr2', return_orbit=False):
+def make_Sgr_mop(time, ics='gaia_dr2', sgr_halo_m = (14*(10**10))*apu.Msun, 
+                 sgr_halo_a=13*apu.kpc, sgr_stlr_m=(6.4*(10**8))*apu.M_sun, 
+                 sgr_stlr_a=0.85*apu.kpc, return_orbit=False):
     '''make_Sgr_mop:
     
-    Make a moving object potential corresponding to a Sgr orbit
+    Make a moving object potential corresponding to a Sgr orbit. The default 
+    masses and scale parameters are from the H1 model of Laporte 2018
     
     Args:
         time (float) - Lookback time at which to begin the orbit (in Gyr, no apu)
         ics (str) - Initial conditions to use. Only option is gaia_dr2 => the 
             Gaia DR2 astrometry-based kinematics
+        sgr_halo_m (float) - Sagittarius halo profile mass
+        sgr_halo_a (float) - Sagittarius halo profile scale length
+        sgr_stlr_m (float) - Sagittarius stellar profile mass
+        sgr_stlr_a (float) - Sagittarius stellar profile scale length
         return_orbit (bool) - Return the orbit along with the MOP
 
     Returns:
@@ -725,11 +732,8 @@ def make_Sgr_mop(time, ics='gaia_dr2', return_orbit=False):
     n_snaps = 10000
     times = np.linspace(0, -time, n_snaps) * apu.Gyr
     
-    sgr_m = (14*(10**10))*apu.Msun
-    sgr_a = 13*apu.kpc
-    sgr_halo = potential.HernquistPotential(amp=sgr_m, a=sgr_a)
-    sgr_stlr = potential.HernquistPotential( (6.4*10**8)*apu.M_sun, 
-        0.85*apu.kpc )
+    sgr_halo = potential.HernquistPotential(amp=sgr_halo_m, a=sgr_halo_a)
+    sgr_stlr = potential.HernquistPotential(amp=sgr_stlr_m, a=sgr_stlr_a) 
     sgr_pot = [sgr_halo,sgr_stlr]
     sgr_dynfric = potential.ChandrasekharDynamicalFrictionForce(
         GMs=sgr_m, rhm=(1+np.sqrt(2))*sgr_a, dens=pot)
