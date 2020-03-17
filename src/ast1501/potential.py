@@ -736,7 +736,7 @@ def make_Sgr_mop(time, ics='gaia_dr2', sgr_halo_m = (14*(10**10))*apu.Msun,
     sgr_stlr = potential.HernquistPotential(amp=sgr_stlr_m, a=sgr_stlr_a) 
     sgr_pot = [sgr_halo,sgr_stlr]
     sgr_dynfric = potential.ChandrasekharDynamicalFrictionForce(
-        GMs=sgr_m, rhm=(1+np.sqrt(2))*sgr_a, dens=pot)
+        GMs=sgr_halo_m, rhm=(1+np.sqrt(2))*sgr_halo_a, dens=pot)
     pot_df = [pot,sgr_dynfric]
     
     print('Integrating Sgr MOP orbit...')
