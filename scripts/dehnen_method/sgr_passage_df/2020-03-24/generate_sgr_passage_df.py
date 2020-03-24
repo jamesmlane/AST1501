@@ -133,7 +133,7 @@ for i in range(len(LAPORTE_MODEL)):
     _LOGFILE.close()
 
     # Write results to file
-    np.save('data_'MODEL_NAME'.npy',np.array(results))
+    np.save('data_'+MODEL_NAME+'.npy',np.array(results))
 ###i
 
 # ----------------------------------------------------------------------------

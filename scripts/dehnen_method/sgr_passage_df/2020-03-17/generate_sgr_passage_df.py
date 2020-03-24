@@ -78,7 +78,7 @@ _QDF = df.quasiisothermaldf(hr= _RADIAL_SCALE*apu.kpc,
 LAPORTE_MODEL=['H1','H2','L1','L2']
 SGR_HALO_M = [ (14*(10**10))*apu.Msun, (14*(10**10))*apu.Msun, 
                (8*(10**10))*apu.Msun,  (8*(10**10))*apu.Msun]
-SGR_HALO_A [ 13*apu.kpc, 7*apu.kpc, 16*apu.kpc, 8*apu.kpc]
+SGR_HALO_A = [ 13*apu.kpc, 7*apu.kpc, 16*apu.kpc, 8*apu.kpc]
 SGR_STLR_M = (6.4*(10**8))*apu.M_sun
 SGR_STLR_A = 0.85*apu.kpc
     
@@ -133,7 +133,7 @@ for i in range(len(LAPORTE_MODEL)):
     _LOGFILE.close()
 
     # Write results to file
-    np.save('data_'MODEL_NAME'.npy',np.array(results))
+    np.save('data_'+MODEL_NAME+'.npy',np.array(results))
 ###i
 
 # ----------------------------------------------------------------------------

@@ -93,7 +93,7 @@ _POT = [potential.MWPotential2014,_SGR_MOP]
 _LOGFILE = open('./log_sgr_mop.txt','w') 
         
 _LOGFILE.write(str(len(_GRIDR))+' evaluations\n')
-write_params = [_NCORES,_TIMES,_RRANGE,_PHIRANGE,_DR,_DPHI,
+write_params = [_NCORES,_TIMES,'Manual','Manual','Manual','Manual',
         _VPARMS,_SIGMAPARMS,_SCALEPARMS,_EVAL_THRESH,]
 write_param_names = ['NCORES','TIMES','RRANGE','PHIRANGE','DR','DPHI',
             'VPARMS','SIGMAPARMS','SCALEPARMS','EVAL_THRESH']
@@ -126,10 +126,5 @@ _LOGFILE.close()
 
 # Write results to file
 np.save('data_sgr_mop.npy',np.array(results))
-
-# Count up
-evaluation_counter += 1
-    ###j
-###i
 
 # ----------------------------------------------------------------------------
