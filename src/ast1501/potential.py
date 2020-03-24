@@ -26,7 +26,8 @@ from matplotlib import pyplot as plt
 from astropy import units as apu
 
 ## Scipy
-from scipy import interpolate
+import scipy.interpolate
+import scipy.signal
 
 ## galpy
 from galpy import orbit
@@ -504,9 +505,11 @@ class kuijken_potential():
         for i in range(4):
             
             # Interpolation
-            fn_vR = interpolate.interp1d(b_values, vR_coeffs[i,:], kind='cubic')
+            fn_vR = scipy.interpolate.interp1d(b_values, vR_coeffs[i,:], 
+                kind='cubic')
             coeffs_out_vR[i] = fn_vR(self.b_a)
-            fn_vT = interpolate.interp1d(b_values, vT_coeffs[i,:], kind='cubic')
+            fn_vT = scipy.interpolate.interp1d(b_values, vT_coeffs[i,:], 
+                kind='cubic')
             coeffs_out_vT[i] = fn_vT(self.b_a)
             
         return coeffs_out_vR, coeffs_out_vT
@@ -676,13 +679,23 @@ def make_LongSlowBar():
     
 #def
 
-def make_Sgr_mop(time, ics='gaia_dr2', sgr_halo_m = (14*(10**10))*apu.Msun, 
+def make_Sgr_mop(time, ics='gaia_dr2', sgr_halo_m=(14*(10**10))*apu.Msun, 
                  sgr_halo_a=13*apu.kpc, sgr_stlr_m=(6.4*(10**8))*apu.M_sun, 
-                 sgr_stlr_a=0.85*apu.kpc, return_orbit=False):
+                 sgr_stlr_a=0.85*apu.kpc, laporte_2018_class=None, 
+                 correct_for_mass_loss=False, get_apocenter=None,
+                 return_orbit=True, return_time=True):
     '''make_Sgr_mop:
     
     Make a moving object potential corresponding to a Sgr orbit. The default 
     masses and scale parameters are from the H1 model of Laporte 2018
+    
+    Laporte models are:
+    H1 : M=14*10^10 Msol, a=13 kpc
+    H2 : M=14*10^10 Msol, a=7 kpc
+    L1 : M=8*10^10 Msol, a=13 kpc
+    L2 : M=8*10^10 Msol, a=7 kpc
+    
+    All have stellar component M=6.4*10^8 Msol, a=0.85 kpc
     
     Args:
         time (float) - Lookback time at which to begin the orbit (in Gyr, no apu)
@@ -692,12 +705,57 @@ def make_Sgr_mop(time, ics='gaia_dr2', sgr_halo_m = (14*(10**10))*apu.Msun,
         sgr_halo_a (float) - Sagittarius halo profile scale length
         sgr_stlr_m (float) - Sagittarius stellar profile mass
         sgr_stlr_a (float) - Sagittarius stellar profile scale length
+        laporte_2018_class (str) - Model H1, H2, L1, or L2 from Laporte+ 2018
+        correct_for_mass_loss (bool) - Apply the correction inferred from 
+            Niederste-Ostholt+ 2012 (Figure 11) for the halo mass and stellar 
+            mass to mimic present-day Sgr properties
+        get_apocenter (int) - Return the orbit with times only up until a 
+            specific apocenter in the past: 1, 2, 3 or so depending on masses 
+            of Sgr and MW (reached within t_universe). Will only change 
+            times output with return_time, not outputed orbit
         return_orbit (bool) - Return the orbit along with the MOP
+        return_time (bools) - Return the times along with the orbit
 
     Returns:
         sgr_mop (Potential) - Moving object potential
-        o_sgr_fwd (Orbit) - Sgr orbit
+        o_sgr (Orbit) - Sgr orbit corresponding to the MOP
+        times (array) - Times corresponding to the orbit and MOP (except when 
+            using get_apocenter keyword)
     '''
+    
+    # If a specific apocenter is requested look for it within the age of the 
+    # universe
+    _GETTING_SGR_APOCENTER=False
+    if isinstance(get_apocenter,int) and get_apocenter > 0:
+        _GETTING_SGR_APOCENTER = True
+    ##fi
+    if _GETTING_SGR_APOCENTER:
+        time = 13.7
+    ##fi
+    
+    # Select from Laporte 2018 models if selected
+    if laporte_2018_class in ['H1','H2','L1','L2']:
+        if laporte_2018_class == 'H1':
+            sgr_halo_m = 14*(10**10)*apu.M_sun
+            sgr_halo_a = 13*apu.kpc
+        elif laporte_2018_class == 'H2':
+            sgr_halo_m = 14*(10**10)*apu.M_sun
+            sgr_halo_a = 7*apu.kpc
+        elif laporte_2018_class == 'L1':
+            sgr_halo_m = 8*(10**10)*apu.M_sun
+            sgr_halo_a = 16*apu.kpc
+        elif laporte_2018_class == 'L2':
+            sgr_halo_m = 8*(10**10)*apu.M_sun
+            sgr_halo_a = 8*apu.kpc
+        ##ie
+        sgr_stlr_m=(6.4*(10**8))*apu.M_sun
+        sgr_stlr_a=0.85*apu.kpc
+    ##fi
+    
+    if correct_for_mass_loss:
+        sgr_halo_m *= 0.1
+        sgr_stlr_m *= 0.3
+    ##fi
     
     helio_vx = -11.1
     helio_vy = 12.24 + 220
@@ -742,12 +800,23 @@ def make_Sgr_mop(time, ics='gaia_dr2', sgr_halo_m = (14*(10**10))*apu.Msun,
     print('Integrating Sgr MOP orbit...')
     o_sgr.integrate(times, pot_df)
     
+    if _GETTING_SGR_APOCENTER:
+        rs = o_sgr.r(times).value
+        apo_arg = scipy.signal.argrelextrema(rs, np.greater)[get_apocenter-1]
+        times = times[apo_arg]
+        if not return_time:
+            print('Warning: Specific apocenter requested, but is only found in times, set return_time=True')
+        ##fi
+    ##fi
+    
     sgr_mop = potential.MovingObjectPotential(o_sgr,
         pot=sgr_pot)
     
+    results = [sgr_mop]
     if return_orbit:
-        return sgr_mop, o_sgr, times
-    else:
-        return sgr_mop
-    ##ie
+        results.append(o_sgr)
+    if return_time:
+        results.append(times)
+    ##fi
+    return results
 #def
