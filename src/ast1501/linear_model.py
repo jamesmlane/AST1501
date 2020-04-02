@@ -2746,6 +2746,7 @@ class LinearModel2():
     # Define some plotting routines
     def plot_velocity_known_m_b_phi(self, velocity_type, fig=None, axs=None, 
                                     phi_lim=[-np.pi/2,np.pi/2], 
+                                    plot_degrees=False,
                                     plot_best_fit=True, plot_kws={}, 
                                     plot_errs=True, twocolumn=True):
         '''plot_velocity_known_m_b_phi
@@ -2761,8 +2762,14 @@ class LinearModel2():
                 one will be created [None]
             axs (matplotlib axs object) - Axs objects to use, if None then they 
                 will be created [None]
-            phi_lim (2-array) - The limits of phi to plot
-            plot_best_fit (bool) - Include the best fitting m=2 profile
+            phi_lim (2-array) - The limits of phi to plot [-np.pi/2,np.pi/2]
+            plot_degrees (bool) - Plot the X axis in degrees instead of radians, 
+                if True then phi_lim is in degrees [False]
+            plot_best_fit (bool) - Include the best fitting m=2 profile [True]
+            plot_kws (dict) - Dictionary of keywords passed to the plotting 
+                call [{}]
+            plot_errs (Bool) - Plot errorbars instead of scatter [True]
+            twocolumn (Bool) - Plot in two columns instead of one [True]
         '''
         
         # Select the right bootstrap sample
@@ -2780,6 +2787,12 @@ class LinearModel2():
             else:
                 fig = plt.figure( figsize=(5,self.n_R_bins*2) )
                 axs = fig.subplots( nrows=self.n_R_bins, ncols=1 )
+            ##fi
+        ##fi
+        
+        _optional_rad2deg = 1.0
+        if plot_degrees:
+            _optional_rad2deg = 180.0/np.pi
         ##fi
         
         # Loop over all radii
@@ -2793,21 +2806,21 @@ class LinearModel2():
             
             # Plot
             if plot_errs:
-                axs[i].errorbar( bin_phi, bin_v, yerr=bin_v_err, fmt='o', 
-                    ecolor='Black', marker='o', markerfacecolor='None', 
-                    markeredgecolor='Black', markersize=5)
+                axs[i].errorbar( bin_phi * _optional_rad2deg, 
+                    bin_v, yerr=bin_v_err, **plot_kws)
             else:
-                axs[i].scatter( bin_phi, bin_v, **plot_kws)
+                axs[i].scatter( bin_phi * _optional_rad2deg, 
+                    bin_v, **plot_kws)
             ##ie
         
             # Plot the best-fitting amplitude
             if plot_best_fit:
                 trig_phis = np.linspace(phi_lim[0], phi_lim[1], num=100)
                 if velocity_type == 'vR':
-                    axs[i].plot( trig_phis, 
+                    axs[i].plot( trig_phis * _optional_rad2deg, 
                         self.b_vR[i]+self.m_vR[i]*np.sin(2*(trig_phis-self.phiB)))
                 if velocity_type == 'vT':
-                    axs[i].plot( trig_phis, 
+                    axs[i].plot( trig_phis * _optional_rad2deg, 
                         self.b_vT[i]+self.m_vT[i]*np.cos(2*(trig_phis-self.phiB)))
                 ##fi
             ##fi
@@ -2833,11 +2846,18 @@ class LinearModel2():
             if velocity_type == 'vT':
                 axs[i].set_ylabel(r'$v_{T}$ [km/s]')
             ##fi
-            if i == 0:
-                axs[i].set_xlabel(r'$\phi$')
-            ##fi
         
-        axs[0].legend(loc='best')
+        if plot_degrees:
+            x_label_text = r'$\Phi$ [deg]'
+        else:
+            x_label_text = r'$\Phi$ [rad]'
+        ##ie
+        axs[-1].set_xlabel(x_label_text)
+        if twocolumn:
+            axs[int(self.n_R_bins/2)-1].set_xlabel(x_label_text)
+        ##fi
+        
+        # axs[0].legend(loc='best')
         fig.subplots_adjust(hspace=0)
         
         return fig, axs
