@@ -1262,3 +1262,219 @@ def make_default_MWPotential2014_qdf():
 #def
 
 # ----------------------------------------------------------------------------
+
+class VelocityField():
+    '''VelocityField:
+    
+    Class to hold the results from a Dehnen DF evaluation
+    
+    There are a few ways to initialize:
+    1. Read in from file: use filename keyword
+        - The filename should end in '.npy' and should contain the array 
+          formatted to the specs listed below
+    2. Supply data in array: use data keyword
+        - Supply the array formatted to the specs listed below
+        
+    filename can be a list of up to two files, if so then use the 
+        filename_operation keyword to supply a np. function that will compare 
+        them (normally either np.add or np.subtract). If so then the operation 
+        will be np.fn(filename[0],filename[1])
+        
+    amplitude_adjust just changes the absolute amplitude of the velocities 
+    which are read in. If it's an array then it's applied to both filenames 
+    in order
+    
+    Both expect that the shape is (N,8) where N is the number of grid cells
+    in the velocity field
+    '''
+    
+    def __init__(self, filename=None, data=None, filename_operation=np.subtract, 
+        amplitude_adjust=1.0):
+        '''__init__:
+        
+        Initialize the class.
+        
+        See VelocityField.__doc__ for initialization instructions
+        '''
+        
+        # First check and see if a filename was supplied
+        if filename != None:
+            if isinstance(filename,list):
+                assert len(filename) == 2, 'filename arrays with more than 2 elements not supported'
+                for f in filename:
+                    assert f[-4:] == '.npy', 'Filename must end in .npy'
+                ###f
+                if amplitude_adjust == 1.0: 
+                    self._amplitude_adjust = [1.0,1.0]
+                ##fi
+                self._is_combined_field = True 
+                self._data1 = np.load(filename[0]).astype(float)
+                self._data2 = np.load(filename[1]).astype(float)
+                self._filename_operation = filename_operation
+                self._amplitude_adjust = amplitude_adjust
+            else:
+                assert filename[-4:] == '.npy', 'Filename must end in .npy'
+                self._data = np.load(filename).astype(float)
+                assert self._data.shape[1] == 8, 'Must have 8 data fields'
+                self._is_combined_field = False
+                self._amplitude_adjust = amplitude_adjust
+        # Second check and see if the data were supplied
+        elif data != None:        
+            self._data = data
+            assert self._data.shape[1] == 8, 'Must have 8 data fields'
+        # Finally complain
+        else:
+            raise RuntimeError('Not able to acquire data based on supplied keywords')
+        ##fi
+        
+        # Set the primary data variables
+        if self._is_combined_field:
+            # First check to make sure the two data arrays are the same size
+            assert self._data1.shape == self._data2.shape,\
+                'Data arrays must be the same size'
+            # Make sure the two 
+            assert np.max( np.abs( self._data1[:,0]-self._data2[:,0] ) ) < 0.1,\
+                'Data do not appear to be on the same radial grid'
+            assert np.max( np.abs( self._data1[:,1]-self._data2[:,1] ) ) < 0.01,\
+                'Data do not appear to be on the same azimuthal grid'
+            
+            # For standard deviations assume the filenames are combined with 
+            # some linear operation: either addition or subtraction.
+            self.R = self._data1[:,0]
+            self.phi = self._data1[:,1]
+            self.x = self._data1[:,2]
+            self.y = self._data1[:,3]
+            self.vR = self._filename_operation(self._data1[:,4]*self._amplitude_adjust[0],
+                                               self._data2[:,4]*self._amplitude_adjust[1])
+            self.vR_std = np.sqrt( np.square(self._data1[:,5]) +\
+                                   np.square(self._data2[:,5]) )
+            self.vT = self._filename_operation(self._data1[:,6]*self._amplitude_adjust[0],
+                                               self._data2[:,6]*self._amplitude_adjust[1])
+            self.vT_std = np.sqrt( np.square(self._data1[:,7]) +\
+                                   np.square(self._data2[:,7]) )
+            
+        else:
+            self.R = self._data[:,0]
+            self.phi = self._data[:,1]
+            self.x = self._data[:,2]
+            self.y = self._data[:,3]
+            self.vR = self._data[:,4]*self._amplitude_adjust
+            self.vR_std = self._data[:,5]
+            self.vT = self._data[:,6]*self._amplitude_adjust
+            self.vT_std = self._data[:,7]
+        ##ie
+        
+        # More information
+        self.unique_R = np.sort(np.unique(self.R))
+        self.n_R = len(self.unique_R)
+        
+        # Divide up the data by individual radial bins
+        self.R_bin = []
+        self.phi_bin = []
+        self.x_bin = []
+        self.y_bin = []
+        self.vR_bin = []
+        self.vR_std_bin  = []
+        self.vT_bin = []
+        self.vT_std_bin  = []
+        for i in range(self.n_R):
+            where_unique_R = np.where( self.R == self.unique_R[i] )
+            self.R_bin.append( self.R[where_unique_R] )
+            self.phi_bin.append( self.phi[where_unique_R] )
+            self.x_bin.append( self.x[where_unique_R] )
+            self.y_bin.append( self.y[where_unique_R] )
+            self.vR_bin.append( self.vR[where_unique_R] )
+            self.vR_std_bin.append( self.vR_std[where_unique_R] )
+            self.vT_bin.append( self.vT[where_unique_R] )
+            self.vT_std_bin.append( self.vT_std[where_unique_R] )
+        ###i
+        
+    ##fi
+    
+    def plot_R(self, velocity, fig=None, axs=None, plot_kws={}, 
+                plot_degrees=True, twocolumn=True, phi_lim=[-np.pi/2,np.pi/2], 
+                y_lim=[-5,5]):
+        '''plot_R:
+        
+        Args:
+            velocity (string) - Which velocity to use, 'vR' or 'vT'
+            fig (matplotlib Figure object) - Figure [None]
+            axs (matplotlib Axes object(s)) - Axes [None]
+            plot_kws (dict) - Dictionary of keywords used in ax.plot [{}]
+            plot_degrees (bool) - Plot in degrees or radians? [True]
+            twocolumn (bool) - Plot in two columns instead of 1
+            phi_lim (2-array) - A two element list/array of phi limits, in 
+                degrees if plot_degrees = True [-np.pi/2,np.pi/2]
+            y_lim (2-array) - A two element list/array of y limits, in 
+                km/s offset from 0. [-5,5]
+        
+        Returns
+            fig (matplotlib Figure object)
+            axs (matplotlib Axes object(s))
+        '''
+        if fig is None and axs is None:
+            if twocolumn:
+                fig = plt.figure( figsize=(15,self.n_R*1.25) )
+                axs = fig.subplots( nrows=int(self.n_R/2), ncols=2 )
+                axs = axs.T.reshape(self.n_R)
+            else:
+                fig = plt.figure( figsize=(5,self.n_R*2) )
+                axs = fig.subplots( nrows=self.n_R, ncols=1 )
+            ##fi
+        ##fi
+        
+        _optional_rad2deg = 1.0
+        if plot_degrees:
+            _optional_rad2deg = 180/np.pi
+        ##fi
+        
+        for i in range( self.n_R ):
+            
+            # Unpack the velocities for the bin
+            bin_R = self.unique_R[i]
+            bin_phi = self.phi_bin[i]
+            if velocity == 'vR':
+                bin_v = self.vR_bin[i]
+            elif velocity == 'vT':
+                bin_v = self.vT_bin[i]    
+            ##ie
+            bin_v -= np.mean(bin_v)
+            
+            # Plot
+            axs[i].plot( bin_phi*_optional_rad2deg, bin_v, **plot_kws )
+            
+            # Annotate
+            axs[i].annotate( r'$R_{cen}=$'+str(bin_R)+' kpc', 
+                xy=(0.05,0.8), xycoords='axes fraction' )
+            axs[i].axhline(0, linestyle='dashed', color='Black', 
+                linewidth=1.0)
+                
+            # Set limits
+            axs[i].set_xlim( phi_lim[0]*_optional_rad2deg, 
+                             phi_lim[1]*_optional_rad2deg )
+            axs[i].set_ylim(y_lim[0], y_lim[1])
+                
+            # Labels
+            if velocity == 'vR':
+                axs[i].set_ylabel(r'$v_{R}-\langle v_{R} \rangle$ [km/s]')
+            if velocity == 'vT':
+                axs[i].set_ylabel(r'$v_{T}-\langle v_{T} \rangle$ [km/s]')
+            ##fi
+        ###i
+        
+        if plot_degrees:
+            x_label_text = r'$\Phi_{GC}$ [deg]'
+        else:
+            x_label_text = r'$\Phi_{GC}$ [rad]'
+        ##ie
+        axs[-1].set_xlabel(x_label_text)
+        if twocolumn:
+            axs[int(self.n_R/2)-1].set_xlabel(x_label_text)
+        ##fi
+
+        fig.subplots_adjust(hspace=0)        
+        return fig, axs
+    #def
+#cls
+
+# ----------------------------------------------------------------------------
