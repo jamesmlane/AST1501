@@ -24,7 +24,7 @@ from galpy import orbit, potential, df, actionAngle
 from galpy.util import bovy_conversion as gpconv
 
 ## Project specific
-sys.path.append('../../../src')
+sys.path.append('../../../../src')
 import ast1501.df
 import ast1501.potential
 import ast1501.util
